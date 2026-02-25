@@ -25,7 +25,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__))
+logger = logging.getLogger(__name__)
 
 # ========== КОНСТАНТИ ==========
 TIMEZONE = timezone("Europe/Kiev")
@@ -602,4 +602,5 @@ if __name__ == "__main__":
     flask_thread.start()
     # Запускаємо бота в головному потоці
     run_bot()
+
 
