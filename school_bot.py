@@ -18,14 +18,14 @@ from telegram.ext import (
     filters,
 )
 
-# Для веб-сервера на Render
 from flask import Flask, jsonify
 
 # ========== НАЛАШТУВАННЯ ЛОГУВАННЯ ==========
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__))
 
 # ========== КОНСТАНТИ ==========
 TIMEZONE = timezone("Europe/Kiev")
@@ -592,6 +592,7 @@ def run_flask():
     flask_app.run(host='0.0.0.0', port=10000)
 
 def run_bot():
+    print("🟢 Запускаю поток бота...")
     main()
 
 if __name__ == "__main__":
@@ -599,4 +600,5 @@ if __name__ == "__main__":
     bot_thread = threading.Thread(target=run_bot)
     bot_thread.start()
     # Запускаємо Flask (головний потік)
+
     run_flask()
