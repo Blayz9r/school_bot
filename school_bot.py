@@ -596,9 +596,10 @@ def run_bot():
     main()
 
 if __name__ == "__main__":
-    # Запускаємо бота в окремому потоці
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
-    # Запускаємо Flask (головний потік)
+    # Запускаємо Flask в окремому потоці (демон, щоб закривався разом із ботом)
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    # Запускаємо бота в головному потоці
+    run_bot()
 
-    run_flask()
