@@ -1,10 +1,11 @@
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
+import pytz
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Настройка логирования — ИСПРАВЛЕНО
+# Настройка логирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -13,6 +14,12 @@ logger = logging.getLogger(__name__)
 
 # Токен из переменных окружения
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+# Часовой пояс (Киев)
+tz = pytz.timezone('Europe/Kiev')
+
+# ID админа (твой) — для теста добавим вручную, позже можно через регистрацию
+ADMIN_ID = 1823742969  # твой ID
 
 # Твоё полное расписание со ссылками
 SCHEDULE = {
@@ -87,7 +94,10 @@ DAY_MAP = {
     6: "sunday"
 }
 
-# Главная клавиатура (всегда внизу)
+# Список пользователей, которым отправлять уведомления (пока только админ)
+NOTIFY_USERS = [ADMIN_ID]
+
+# ========== КЛАВИАТУРЫ ==========
 def main_keyboard():
     keyboard = [
         [KeyboardButton("📅 Сьогодні"), KeyboardButton("📆 Завтра")],
@@ -96,18 +106,23 @@ def main_keyboard():
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-# Старт
+# ========== ОБРАБОТЧИКИ КОМАНД ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in NOTIFY_USERS:
+        NOTIFY_USERS.append(user_id)
+        logger.info(f"Добавлен пользователь {user_id} для уведомлений")
+    
     await update.message.reply_text(
         "👋 *Вітаю!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
         parse_mode="Markdown",
         reply_markup=main_keyboard()
     )
 
-# Обработка кнопок
+# ========== ОБРАБОТКА КНОПОК ==========
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    today_idx = datetime.now().weekday()
+    today_idx = datetime.now(tz).weekday()
     
     if text == "📅 Сьогодні":
         await show_day(update, today_idx)
@@ -120,7 +135,6 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🔗 Посилання на урок":
         await show_links_keyboard(update, today_idx)
 
-# Показать расписание на конкретный день
 async def show_day(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
     lessons = SCHEDULE[day_key]
@@ -136,7 +150,6 @@ async def show_day(update: Update, day_idx: int):
     
     await update.message.reply_text(text, parse_mode="Markdown")
 
-# Показать всю неделю
 async def show_week(update: Update):
     text = "📋 *Розклад на тиждень*\n\n"
     for day_key, day_name in DAYS_UA.items():
@@ -148,12 +161,10 @@ async def show_week(update: Update):
             text += "\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
-# Следующий урок
 async def next_lesson(update: Update, today_idx: int):
-    now = datetime.now()
+    now = datetime.now(tz)
     current_time = now.strftime("%H:%M")
     
-    # Сначала ищем сегодня
     day_key = DAY_MAP[today_idx]
     for lesson in SCHEDULE[day_key]:
         if lesson['time'] > current_time:
@@ -163,7 +174,6 @@ async def next_lesson(update: Update, today_idx: int):
             )
             return
     
-    # Если сегодня нет, ищем завтра
     tomorrow_idx = (today_idx + 1) % 7
     day_key = DAY_MAP[tomorrow_idx]
     if SCHEDULE[day_key]:
@@ -175,7 +185,6 @@ async def next_lesson(update: Update, today_idx: int):
     else:
         await update.message.reply_text("🎉 Найближчих уроків немає. Відпочивай!")
 
-# Показать инлайн-кнопки с уроками для выбора ссылки
 async def show_links_keyboard(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
     lessons = SCHEDULE[day_key]
@@ -186,7 +195,7 @@ async def show_links_keyboard(update: Update, day_idx: int):
     
     keyboard = []
     for i, lesson in enumerate(lessons):
-        if lesson['link']:  # Только уроки со ссылками
+        if lesson['link']:
             keyboard.append([InlineKeyboardButton(
                 f"{lesson['time']} – {lesson['name']}", 
                 callback_data=f"link_{day_idx}_{i}"
@@ -199,7 +208,7 @@ async def show_links_keyboard(update: Update, day_idx: int):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🔗 Оберіть урок:", reply_markup=reply_markup)
 
-# Обработка инлайн-кнопок
+# ========== ОБРАБОТКА ИНЛАЙН-КНОПОК ==========
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -224,15 +233,101 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text(f"❌ Для уроку *{lesson['name']}* немає посилання.", parse_mode="Markdown")
 
-# Запуск бота
+# ========== ПЛАНИРОВЩИК УРОКОВ ==========
+async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
+    """Отправляет уведомление о начале урока"""
+    lesson_name = context.job.data['name']
+    lesson_link = context.job.data['link']
+    lesson_time = context.job.data['time']
+    notification_type = context.job.data.get('type', 'start')
+    
+    for user_id in NOTIFY_USERS:
+        if notification_type == 'reminder':
+            text = f"⏳ *За 5 хвилин урок:* {lesson_name}"
+        else:
+            text = f"⏰ *Почався урок:* {lesson_name}"
+        
+        reply_markup = None
+        if lesson_link:
+            keyboard = [[InlineKeyboardButton("🔗 Приєднатися до Zoom", url=lesson_link)]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            text += "\n\nНатисни кнопку нижче, щоб приєднатися 👇"
+        
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+            logger.info(f"Уведомление '{notification_type}' для {lesson_name} отправлено {user_id}")
+        except Exception as e:
+            logger.error(f"Ошибка отправки {user_id}: {e}")
+
+def schedule_lessons(app: Application):
+    """Планирует все уроки (за 5 минут и в начало)"""
+    for day_key, lessons in SCHEDULE.items():
+        # Получаем номер дня недели (0-6)
+        day_num = list(DAY_MAP.keys())[list(DAY_MAP.values()).index(day_key)]
+        
+        for lesson in lessons:
+            if not lesson['time']:
+                continue
+                
+            # Парсим время
+            hour, minute = map(int, lesson['time'].split(':'))
+            
+            # Уведомление за 5 минут до урока
+            reminder_time = (datetime.now(tz).replace(hour=hour, minute=minute, second=0) - timedelta(minutes=5)).time()
+            reminder_job_data = {
+                'name': lesson['name'],
+                'link': lesson['link'],
+                'time': lesson['time'],
+                'type': 'reminder'
+            }
+            app.job_queue.run_daily(
+                send_lesson_notification,
+                time=reminder_time,
+                days=(day_num,),
+                data=reminder_job_data,
+                name=f"{lesson['name']}_reminder"
+            )
+            
+            # Уведомление в начале урока
+            start_time = time(hour=hour, minute=minute, second=0)
+            start_job_data = {
+                'name': lesson['name'],
+                'link': lesson['link'],
+                'time': lesson['time'],
+                'type': 'start'
+            }
+            app.job_queue.run_daily(
+                send_lesson_notification,
+                time=start_time,
+                days=(day_num,),
+                data=start_job_data,
+                name=f"{lesson['name']}_start"
+            )
+    
+    logger.info("✅ Все уроки запланированы")
+
+# ========== ЗАПУСК ==========
 def main():
+    if not BOT_TOKEN:
+        logger.error("❌ Токен не найден")
+        return
+    
     app = Application.builder().token(BOT_TOKEN).build()
     
+    # Команды и кнопки
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    print("🚀 Бот запущен...")
+    # Планирование уроков
+    schedule_lessons(app)
+    
+    logger.info(f"🚀 Бот запущен. Уведомления будут получать: {NOTIFY_USERS}")
     app.run_polling()
 
 if __name__ == "__main__":
