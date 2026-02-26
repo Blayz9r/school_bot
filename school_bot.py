@@ -64,7 +64,7 @@ holidays = load_json(Path(HOLIDAYS_FILE), {})
 # ========== ТЕСТОВОЕ РАСПИСАНИЕ ==========
 # Установи время на ближайшее (например, 13:40)
 test_hour = 13
-test_minute = 40  # поменяй на 45, если не успеваешь
+test_minute = 55  # поменяй на 45, если не успеваешь
 
 schedule = {
     datetime.now(TIMEZONE).weekday(): [  # сегодня
@@ -145,3 +145,4 @@ def run_bot():
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     run_bot()
+
