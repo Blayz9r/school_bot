@@ -108,7 +108,7 @@ schedule = {
         (dt_time(10, 0),  "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(11, 0),  "📖 Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
         (dt_time(12, 0),  "🧬 Біологія і екологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1"),
-        (dt_time(12, 35),  "📐 Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        (dt_time(13, 0),  "📐 Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
         (dt_time(14, 0),  "🛡 Захист України", None),
         (dt_time(15, 0),  "🛡 Захист України", None),
     ],
@@ -519,13 +519,14 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ========== ПЛАНУВАЛЬНИК УРОКІВ (НАГАДУВАННЯ) ==========
 async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
     """Надсилає гарне нагадування про урок із кнопкою для приєднання."""
+    logger.info("🔥🔥🔥 Функція send_lesson_notification ВИКЛИКАНА! 🔥🔥🔥")
     job = context.job
     lesson_time, lesson_name, lesson_link = job.data
-    logger.info(f"🔔 Отправляю уведомление для урока: {lesson_name} в {lesson_time.strftime('%H:%M')}")
+    logger.info(f"🔔 Відправляю сповіщення для уроку: {lesson_name} о {lesson_time.strftime('%H:%M')}")
 
     for uid in approved_users:
         if is_on_holiday(uid):
-            logger.info(f"   Пользователь {uid} на каникулах, пропускаем")
+            logger.info(f"   Користувач {uid} на канікулах, пропускаємо")
             continue
 
         # Формуємо гарне повідомлення
@@ -548,9 +549,9 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown",
                 reply_markup=reply_markup
             )
-            logger.info(f"   Уведомление отправлено пользователю {uid}")
+            logger.info(f"   Сповіщення відправлено користувачу {uid}")
         except Exception as e:
-            logger.error(f"   Ошибка отправки пользователю {uid}: {e}")
+            logger.error(f"   Помилка відправки користувачу {uid}: {e}")
 
 def schedule_all_lessons(app: Application):
     """Планує всі уроки."""
@@ -558,6 +559,7 @@ def schedule_all_lessons(app: Application):
     for day, lessons in schedule.items():
         for lesson_time, lesson_name, lesson_link in lessons:
             tz_time = dt_time(hour=lesson_time.hour, minute=lesson_time.minute, tzinfo=TIMEZONE)
+            logger.info(f"📅 Планую урок: {lesson_name} на {lesson_time.strftime('%H:%M')} в день {day}")
             app.job_queue.run_daily(
                 send_lesson_notification,
                 time=tz_time,
@@ -565,21 +567,33 @@ def schedule_all_lessons(app: Application):
                 data=(lesson_time, lesson_name, lesson_link)
             )
             count += 1
-    logger.info(f"✅ Усі уроки заплановано. Всего задач: {count}")
+    logger.info(f"✅ Усі уроки заплановано. Всього задач: {count}")
+    return count
 
-# ========== ДЛЯ ОТЛАДКИ: ПОКАЗАТЬ ЗАПЛАНИРОВАННЫЕ ЗАДАЧИ ==========
+# ========== ДЛЯ ОТЛАДКИ: ПОКАЗАТИ ЗАПЛАНОВАНІ ЗАДАЧІ ==========
 def list_jobs(app):
     jobs = app.job_queue.jobs()
-    logger.info(f"📋 Запланировано задач: {len(jobs)}")
+    logger.info(f"📋 Заплановано задач: {len(jobs)}")
     for job in jobs:
-        # Просто логируем имя задачи, без next_t
-        logger.info(f"   - {job.name}")
+        # Безпечно отримуємо наступний час запуску, якщо він є
+        next_time = "невідомо"
+        try:
+            if hasattr(job, 'next_t'):
+                next_time = job.next_t
+        except:
+            pass
+        logger.info(f"   - {job.name} (наступний запуск: {next_time})")
 
 # ========== ОСНОВНА ФУНКЦІЯ ЗАПУСКУ БОТА ==========
 def main():
+    logger.info("🟢 Запуск main()...")
+    
     if not BOT_TOKEN:
         logger.error("❌ Токен не задано. Заповніть config.json або змінні оточення")
         return
+
+    logger.info(f"🆔 ADMIN_ID = {ADMIN_ID}")
+    logger.info(f"👥 Підтверджених користувачів: {len(approved_users)}")
 
     app = Application.builder().token(BOT_TOKEN).build()
 
@@ -595,12 +609,13 @@ def main():
     app.add_handler(CallbackQueryHandler(callback_handler))
 
     # Планування уроків
-    schedule_all_lessons(app)
+    total = schedule_all_lessons(app)
+    logger.info(f"📊 Заплановано {total} уроків")
     
-    # Показать запланированные задачи (отладка)
+    # Показати заплановані задачі (відладка)
     list_jobs(app)
 
-    logger.info("🚀 Бот успішно запущено!")
+    logger.info("🚀 Бот успішно запущено! Починаю опитування...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 # ========== ДЛЯ ХОСТИНГУ НА RENDER ==========
@@ -615,24 +630,5 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 def run_flask():
-    flask_app.run(host='0.0.0.0', port=10000)
-
-def run_bot():
-    print("🟢 Запускаю поток бота...")
-    try:
-        main()
-    except Exception as e:
-        print(f"❌ Ошибка в потоке бота: {e}")
-        import traceback
-        traceback.print_exc()
-
-if __name__ == "__main__":
-    # Запускаємо Flask в окремому потоці (демон, щоб закривався разом із ботом)
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-    # Запускаємо бота в головному потоці
-    run_bot()
-
-
-
+    logger.info("🌐 Запуск Flask-сервера на порту 10000...")
+   
