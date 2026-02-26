@@ -103,7 +103,7 @@ schedule = {
         (dt_time(14, 0),  "⚛ Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1"),
         (dt_time(15, 0),  "🏃 Фізична культура", "https://us04web.zoom.us/j/9199278785?pwd=V"),
     ],
-    3: [  # Четверг
+    3: [  # Четвер
         (dt_time(9, 0),   "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(10, 0),  "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(11, 0),  "📖 Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
@@ -570,20 +570,6 @@ def schedule_all_lessons(app: Application):
     logger.info(f"✅ Усі уроки заплановано. Всього задач: {count}")
     return count
 
-# ========== ДЛЯ ОТЛАДКИ: ПОКАЗАТИ ЗАПЛАНОВАНІ ЗАДАЧІ ==========
-def list_jobs(app):
-    jobs = app.job_queue.jobs()
-    logger.info(f"📋 Заплановано задач: {len(jobs)}")
-    for job in jobs:
-        # Безпечно отримуємо наступний час запуску, якщо він є
-        next_time = "невідомо"
-        try:
-            if hasattr(job, 'next_t'):
-                next_time = job.next_t
-        except:
-            pass
-        logger.info(f"   - {job.name} (наступний запуск: {next_time})")
-
 # ========== ОСНОВНА ФУНКЦІЯ ЗАПУСКУ БОТА ==========
 def main():
     logger.info("🟢 Запуск main()...")
@@ -611,9 +597,6 @@ def main():
     # Планування уроків
     total = schedule_all_lessons(app)
     logger.info(f"📊 Заплановано {total} уроків")
-    
-    # Показати заплановані задачі (відладка)
-    list_jobs(app)
 
     logger.info("🚀 Бот успішно запущено! Починаю опитування...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -631,4 +614,21 @@ def health():
 
 def run_flask():
     logger.info("🌐 Запуск Flask-сервера на порту 10000...")
-   
+    flask_app.run(host='0.0.0.0', port=10000)
+
+def run_bot():
+    print("🟢 Запускаю поток бота...")
+    try:
+        main()
+    except Exception as e:
+        print(f"❌ Ошибка в потоке бота: {e}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    # Запускаємо Flask в окремому потоці (демон, щоб закривався разом із ботом)
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    # Запускаємо бота в головному потоці
+    run_bot()
