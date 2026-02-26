@@ -32,18 +32,24 @@ def load_users():
     try:
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                logger.info(f"📂 Загружено пользователей из файла: {data}")
+                return data
+        else:
+            logger.info("📂 Файл пользователей не найден, создаём новый с админом")
+            return [ADMIN_ID]
     except Exception as e:
-        logger.error(f"Ошибка загрузки пользователей: {e}")
-    return [ADMIN_ID]  # если файла нет, возвращаем админа
+        logger.error(f"❌ Ошибка загрузки пользователей: {e}")
+        return [ADMIN_ID]
 
 # Сохранение пользователей в файл
 def save_users(users):
     try:
         with open(USERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(users, f, ensure_ascii=False, indent=2)
+        logger.info(f"💾 Сохранено пользователей в файл: {users}")
     except Exception as e:
-        logger.error(f"Ошибка сохранения пользователей: {e}")
+        logger.error(f"❌ Ошибка сохранения пользователей: {e}")
 
 # Загружаем пользователей
 NOTIFY_USERS = load_users()
@@ -450,3 +456,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     # Запускаем бота
     main()
+
