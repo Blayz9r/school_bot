@@ -2,6 +2,8 @@ import logging
 import os
 from datetime import datetime, time, timedelta
 import pytz
+import threading
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
@@ -330,5 +332,19 @@ def main():
     logger.info(f"🚀 Бот запущен. Уведомления будут получать: {NOTIFY_USERS}")
     app.run_polling()
 
+# ========== ДЛЯ RENDER ==========
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Бот работает!"
+
+def run_flask():
+    flask_app.run(host='0.0.0.0', port=10000)
+
 if __name__ == "__main__":
+    # Запускаем Flask в фоне
+    threading.Thread(target=run_flask, daemon=True).start()
+    # Запускаем бота
     main()
+
