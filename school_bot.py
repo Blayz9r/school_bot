@@ -52,14 +52,23 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID") or config.get("admin_id", 0))
 if not BOT_TOKEN:
     raise ValueError("❌ Токен не найден")
 
+# ВРЕМЕННО: принудительно добавляем твой ID
 approved_users = load_json(Path(APPROVED_FILE), [])
+YOUR_ID = 1823742969
+if YOUR_ID not in approved_users:
+    approved_users.append(YOUR_ID)
+    logger.info(f"✅ Принудительно добавлен пользователь {YOUR_ID}")
+
 holidays = load_json(Path(HOLIDAYS_FILE), {})
 
-# ========== РАСПИСАНИЕ (сократил для теста) ==========
+# ========== ТЕСТОВОЕ РАСПИСАНИЕ ==========
+# Установи время на ближайшее (например, 13:40)
+test_hour = 13
+test_minute = 40  # поменяй на 45, если не успеваешь
+
 schedule = {
-    3: [  # Четверг
-        (dt_time(12, 35), "🧪 ТЕСТОВЫЙ УРОК", None),
-        (dt_time(14, 0), "🛡 Захист України", None),
+    datetime.now(TIMEZONE).weekday(): [  # сегодня
+        (dt_time(test_hour, test_minute), "🧪 ТЕСТОВЫЙ УРОК", None),
     ]
 }
 
@@ -87,10 +96,17 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
     logger.info("🔥🔥🔥 УРОК НАЧАЛСЯ! 🔥🔥🔥")
     job = context.job
     lesson_time, lesson_name, lesson_link = job.data
+    logger.info(f"🔔 Отправка урока: {lesson_name}")
+    
     for uid in approved_users:
         if is_on_holiday(uid):
+            logger.info(f"   Пользователь {uid} на каникулах")
             continue
-        await context.bot.send_message(chat_id=uid, text=f"⏰ {lesson_name}")
+        try:
+            await context.bot.send_message(chat_id=uid, text=f"⏰ {lesson_name}")
+            logger.info(f"   Отправлено пользователю {uid}")
+        except Exception as e:
+            logger.error(f"   Ошибка отправки {uid}: {e}")
 
 def schedule_all_lessons(app):
     count = 0
