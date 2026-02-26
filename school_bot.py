@@ -572,7 +572,9 @@ def list_jobs(app):
     jobs = app.job_queue.jobs()
     logger.info(f"📋 Запланировано задач: {len(jobs)}")
     for job in jobs:
-        logger.info(f"   - {job.name} в {job.next_t}")
+        # Безопасно получаем следующее время запуска
+        next_time = job.next_t if hasattr(job, 'next_t') else "неизвестно"
+        logger.info(f"   - {job.name} (след. запуск: {next_time})")
 
 # ========== ОСНОВНА ФУНКЦІЯ ЗАПУСКУ БОТА ==========
 def main():
@@ -632,3 +634,4 @@ if __name__ == "__main__":
     flask_thread.start()
     # Запускаємо бота в головному потоці
     run_bot()
+
