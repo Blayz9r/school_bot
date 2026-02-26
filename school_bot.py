@@ -1,12 +1,14 @@
 import logging
 import os
-import asyncio
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Настройка логирования
-logging.basicConfig(format="%(asime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+# Настройка логирования — ИСПРАВЛЕНО
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 # Токен из переменных окружения
