@@ -53,6 +53,26 @@ def save_users(users):
 
 # Загружаем пользователей
 NOTIFY_USERS = load_users()
+# Файл для заблокированных пользователей
+BLOCKED_FILE = "blocked.json"
+
+def load_blocked():
+    try:
+        if os.path.exists(BLOCKED_FILE):
+            with open(BLOCKED_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки блокированных: {e}")
+    return []
+
+def save_blocked(blocked):
+    try:
+        with open(BLOCKED_FILE, 'w', encoding='utf-8') as f:
+            json.dump(blocked, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения блокированных: {e}")
+
+BLOCKED_USERS = load_blocked()
 
 # Твоё полное расписание со ссылками
 SCHEDULE = {
@@ -171,9 +191,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== ОБРАБОТКА КНОПОК ==========
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
     user_id = update.effective_user.id
-    today_idx = datetime.now(tz).weekday()
+    text = update.message.text  # <-- ЭТОЙ СТРОКИ НЕТ!
+    today_idx = datetime.now(tz).weekday()  # <-- И ЭТОЙ!
+    
+    # Проверка на блокировку
+    if user_id in BLOCKED_USERS and user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Доступ заборонено.")
+        return
+    
+    # ... остальной код
     
     if text == "📅 Сьогодні":
         await show_day(update, today_idx)
@@ -263,19 +290,27 @@ async def show_links_keyboard(update: Update, day_idx: int):
 
 # ========== АДМИН ПАНЕЛЬ ==========
 async def show_admin_panel(update: Update):
-    """Показывает список пользователей с кнопками для удаления"""
+    """Показывает список пользователей с кнопками для удаления и блокировки"""
     text = "👑 *Адмін панель*\n\n"
-    text += f"📊 Всього користувачів: {len(NOTIFY_USERS)}\n\n"
+    text += f"📊 Всього користувачів: {len(NOTIFY_USERS)}\n"
+    text += f"🚫 Заблоковано: {len(BLOCKED_USERS)}\n\n"
     text += "*Список користувачів:*\n"
     
     keyboard = []
     for user_id in NOTIFY_USERS:
-        if user_id != ADMIN_ID:  # Не показываем кнопку для удаления админа
-            text += f"• `{user_id}`\n"
-            keyboard.append([InlineKeyboardButton(
-                f"❌ Видалити {user_id}", 
-                callback_data=f"kick_{user_id}"
-            )])
+        if user_id != ADMIN_ID:
+            status = "🔴 Заблокований" if user_id in BLOCKED_USERS else "🟢 Активний"
+            text += f"• `{user_id}` — {status}\n"
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"❌ Видалити", 
+                    callback_data=f"kick_{user_id}"
+                ),
+                InlineKeyboardButton(
+                    f"🚫 Блокувати" if user_id not in BLOCKED_USERS else "✅ Розблокувати", 
+                    callback_data=f"toggle_block_{user_id}"
+                )
+            ])
     
     if keyboard:
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -309,7 +344,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = update.effective_user.id
     
-    # Проверяем, админ ли нажимает кнопки удаления
+    # Обработка блокировки/разблокировки
+    if data.startswith("toggle_block_"):
+        if user_id != ADMIN_ID:
+            await query.edit_message_text("⛔ Тільки адмін може блокувати користувачів.")
+            return
+        target_id = int(data.split("_")[2])
+        
+        if target_id in BLOCKED_USERS:
+            BLOCKED_USERS.remove(target_id)
+            save_blocked(BLOCKED_USERS)
+            await query.edit_message_text(f"✅ Користувача `{target_id}` розблоковано.")
+        else:
+            BLOCKED_USERS.append(target_id)
+            save_blocked(BLOCKED_USERS)
+            await query.edit_message_text(f"🚫 Користувача `{target_id}` заблоковано.")
+        logger.info(f"Пользователь {target_id} {'разблокирован' if target_id not in BLOCKED_USERS else 'заблокирован'}")
+        return
+    
+    # Проверка на удаление
     if data.startswith("kick_"):
         if user_id != ADMIN_ID:
             await query.edit_message_text("⛔ Тільки адмін може видаляти користувачів.")
@@ -456,4 +509,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     # Запускаем бота
     main()
+
 
