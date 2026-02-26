@@ -280,7 +280,13 @@ def schedule_lessons(app: Application):
             hour, minute = map(int, lesson['time'].split(':'))
             
             # Уведомление за 5 минут до урока
-            reminder_time = (datetime.now(tz).replace(hour=hour, minute=minute, second=0) - timedelta(minutes=5)).time()
+            reminder_hour = hour
+            reminder_minute = minute - 5
+            if reminder_minute < 0:
+                reminder_hour -= 1
+                reminder_minute += 60
+            
+            reminder_time = time(hour=reminder_hour, minute=reminder_minute, second=0)
             reminder_job_data = {
                 'name': lesson['name'],
                 'link': lesson['link'],
