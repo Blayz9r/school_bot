@@ -1,8 +1,9 @@
 import logging
 import os
+import json
+import threading
 from datetime import datetime, time, timedelta
 import pytz
-import threading
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
@@ -20,8 +21,32 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 # Часовой пояс (Киев)
 tz = pytz.timezone('Europe/Kiev')
 
-# ID админа (твой) — для теста добавим вручную, позже можно через регистрацию
-ADMIN_ID = 1823742969  # твой ID
+# ID админа (твой)
+ADMIN_ID = 1823742969
+
+# Файл для хранения пользователей
+USERS_FILE = "users.json"
+
+# Загрузка пользователей из файла
+def load_users():
+    try:
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки пользователей: {e}")
+    return [ADMIN_ID]  # если файла нет, возвращаем админа
+
+# Сохранение пользователей в файл
+def save_users(users):
+    try:
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения пользователей: {e}")
+
+# Загружаем пользователей
+NOTIFY_USERS = load_users()
 
 # Твоё полное расписание со ссылками
 SCHEDULE = {
@@ -96,9 +121,6 @@ DAY_MAP = {
     6: "sunday"
 }
 
-# Список пользователей, которым отправлять уведомления (пока только админ)
-NOTIFY_USERS = [ADMIN_ID]
-
 # ========== КЛАВИАТУРЫ ==========
 def main_keyboard():
     keyboard = [
@@ -108,22 +130,43 @@ def main_keyboard():
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+def admin_keyboard():
+    keyboard = [
+        [KeyboardButton("📅 Сьогодні"), KeyboardButton("📆 Завтра")],
+        [KeyboardButton("📋 Тиждень"), KeyboardButton("⏭ Наступний урок")],
+        [KeyboardButton("🔗 Посилання на урок")],
+        [KeyboardButton("👑 Адмін панель")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
 # ========== ОБРАБОТЧИКИ КОМАНД ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    
+    # Добавляем пользователя если его нет
     if user_id not in NOTIFY_USERS:
         NOTIFY_USERS.append(user_id)
-        logger.info(f"Добавлен пользователь {user_id} для уведомлений")
+        save_users(NOTIFY_USERS)
+        logger.info(f"Добавлен пользователь {user_id}")
     
-    await update.message.reply_text(
-        "👋 *Вітаю!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
-        parse_mode="Markdown",
-        reply_markup=main_keyboard()
-    )
+    # Для админа показываем расширенную клавиатуру
+    if user_id == ADMIN_ID:
+        await update.message.reply_text(
+            "👋 *Вітаю, адміністраторе!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
+            parse_mode="Markdown",
+            reply_markup=admin_keyboard()
+        )
+    else:
+        await update.message.reply_text(
+            "👋 *Вітаю!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
+            parse_mode="Markdown",
+            reply_markup=main_keyboard()
+        )
 
 # ========== ОБРАБОТКА КНОПОК ==========
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    user_id = update.effective_user.id
     today_idx = datetime.now(tz).weekday()
     
     if text == "📅 Сьогодні":
@@ -136,6 +179,8 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await next_lesson(update, today_idx)
     elif text == "🔗 Посилання на урок":
         await show_links_keyboard(update, today_idx)
+    elif text == "👑 Адмін панель" and user_id == ADMIN_ID:
+        await show_admin_panel(update)
 
 async def show_day(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
@@ -210,12 +255,64 @@ async def show_links_keyboard(update: Update, day_idx: int):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🔗 Оберіть урок:", reply_markup=reply_markup)
 
+# ========== АДМИН ПАНЕЛЬ ==========
+async def show_admin_panel(update: Update):
+    """Показывает список пользователей с кнопками для удаления"""
+    text = "👑 *Адмін панель*\n\n"
+    text += f"📊 Всього користувачів: {len(NOTIFY_USERS)}\n\n"
+    text += "*Список користувачів:*\n"
+    
+    keyboard = []
+    for user_id in NOTIFY_USERS:
+        if user_id != ADMIN_ID:  # Не показываем кнопку для удаления админа
+            text += f"• `{user_id}`\n"
+            keyboard.append([InlineKeyboardButton(
+                f"❌ Видалити {user_id}", 
+                callback_data=f"kick_{user_id}"
+            )])
+    
+    if keyboard:
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=reply_markup)
+    else:
+        text += "\n*Немає інших користувачів*"
+        await update.message.reply_text(text, parse_mode="Markdown")
+
+async def kick_user(user_id: int, query):
+    """Удаляет пользователя из списка уведомлений"""
+    global NOTIFY_USERS
+    if user_id in NOTIFY_USERS and user_id != ADMIN_ID:
+        NOTIFY_USERS.remove(user_id)
+        save_users(NOTIFY_USERS)
+        await query.edit_message_text(
+            f"✅ Користувача `{user_id}` видалено зі списку сповіщень.",
+            parse_mode="Markdown"
+        )
+        logger.info(f"Пользователь {user_id} удален из NOTIFY_USERS")
+    else:
+        await query.edit_message_text(
+            f"❌ Не вдалося видалити користувача `{user_id}`.",
+            parse_mode="Markdown"
+        )
+
 # ========== ОБРАБОТКА ИНЛАЙН-КНОПОК ==========
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
     data = query.data
+    user_id = update.effective_user.id
+    
+    # Проверяем, админ ли нажимает кнопки удаления
+    if data.startswith("kick_"):
+        if user_id != ADMIN_ID:
+            await query.edit_message_text("⛔ Тільки адмін може видаляти користувачів.")
+            return
+        target_id = int(data.split("_")[1])
+        await kick_user(target_id, query)
+        return
+    
+    # Обработка ссылок на уроки
     if data.startswith("link_"):
         parts = data.split("_")
         day_idx = int(parts[1])
@@ -317,7 +414,7 @@ def schedule_lessons(app: Application):
                 name=f"{lesson['name']}_start"
             )
     
-    logger.info("✅ Все уроки запланированы")
+    logger.info(f"✅ Все уроки запланированы. Всего пользователей: {len(NOTIFY_USERS)}")
 
 # ========== ЗАПУСК ==========
 def main():
@@ -353,4 +450,3 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     # Запускаем бота
     main()
-
