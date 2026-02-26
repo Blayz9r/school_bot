@@ -108,7 +108,7 @@ schedule = {
         (dt_time(10, 0),  "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(11, 0),  "📖 Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
         (dt_time(12, 0),  "🧬 Біологія і екологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1"),
-        (dt_time(12, 21),  "📐 Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        (dt_time(12, 35),  "📐 Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
         (dt_time(14, 0),  "🛡 Захист України", None),
         (dt_time(15, 0),  "🛡 Захист України", None),
     ],
@@ -633,5 +633,6 @@ if __name__ == "__main__":
     flask_thread.start()
     # Запускаємо бота в головному потоці
     run_bot()
+
 
 
