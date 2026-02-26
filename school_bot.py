@@ -24,38 +24,82 @@ tz = pytz.timezone('Europe/Kiev')
 # ID админа (твой)
 ADMIN_ID = 1823742969
 
-# Файл для хранения пользователей
-USERS_FILE = "users.json"
+# Файлы для хранения данных
+USERS_FILE = "users.json"              # ID пользователей
+PENDING_FILE = "pending.json"          # Ожидающие подтверждения
+USER_NAMES_FILE = "user_names.json"    # Имена пользователей
+USER_USERNAMES_FILE = "user_usernames.json"  # Username'ы
+BLOCKED_FILE = "blocked.json"          # Заблокированные
 
-# Загрузка пользователей из файла
+# Загрузка пользователей
 def load_users():
     try:
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                logger.info(f"📂 Загружено пользователей из файла: {data}")
-                return data
-        else:
-            logger.info("📂 Файл пользователей не найден, создаём новый с админом")
-            return [ADMIN_ID]
+                return json.load(f)
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки пользователей: {e}")
-        return [ADMIN_ID]
+        logger.error(f"Ошибка загрузки пользователей: {e}")
+    return [ADMIN_ID]
 
-# Сохранение пользователей в файл
 def save_users(users):
     try:
         with open(USERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(users, f, ensure_ascii=False, indent=2)
-        logger.info(f"💾 Сохранено пользователей в файл: {users}")
     except Exception as e:
-        logger.error(f"❌ Ошибка сохранения пользователей: {e}")
+        logger.error(f"Ошибка сохранения пользователей: {e}")
 
-# Загружаем пользователей
-NOTIFY_USERS = load_users()
-# Файл для заблокированных пользователей
-BLOCKED_FILE = "blocked.json"
+# Загрузка ожидающих
+def load_pending():
+    try:
+        if os.path.exists(PENDING_FILE):
+            with open(PENDING_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки ожидающих: {e}")
+    return []
 
+def save_pending(pending):
+    try:
+        with open(PENDING_FILE, 'w', encoding='utf-8') as f:
+            json.dump(pending, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения ожидающих: {e}")
+
+# Загрузка имён пользователей
+def load_user_names():
+    try:
+        if os.path.exists(USER_NAMES_FILE):
+            with open(USER_NAMES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки имён: {e}")
+    return {}
+
+def save_user_names(names):
+    try:
+        with open(USER_NAMES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(names, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения имён: {e}")
+
+# Загрузка username'ов
+def load_user_usernames():
+    try:
+        if os.path.exists(USER_USERNAMES_FILE):
+            with open(USER_USERNAMES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки username'ов: {e}")
+    return {}
+
+def save_user_usernames(usernames):
+    try:
+        with open(USER_USERNAMES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(usernames, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения username'ов: {e}")
+
+# Загрузка заблокированных
 def load_blocked():
     try:
         if os.path.exists(BLOCKED_FILE):
@@ -72,6 +116,11 @@ def save_blocked(blocked):
     except Exception as e:
         logger.error(f"Ошибка сохранения блокированных: {e}")
 
+# Загружаем все данные
+NOTIFY_USERS = load_users()
+PENDING_USERS = load_pending()
+USER_NAMES = load_user_names()
+USER_USERNAMES = load_user_usernames()
 BLOCKED_USERS = load_blocked()
 
 # Твоё полное расписание со ссылками
@@ -169,38 +218,99 @@ def admin_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Добавляем пользователя если его нет
-    if user_id not in NOTIFY_USERS:
-        NOTIFY_USERS.append(user_id)
-        save_users(NOTIFY_USERS)
-        logger.info(f"Добавлен пользователь {user_id}")
-    
-    # Для админа показываем расширенную клавиатуру
+    # Если админ — сразу даём доступ
     if user_id == ADMIN_ID:
         await update.message.reply_text(
             "👋 *Вітаю, адміністраторе!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
             parse_mode="Markdown",
             reply_markup=admin_keyboard()
         )
-    else:
+        return
+    
+    # Если уже подтверждён — даём доступ
+    if user_id in NOTIFY_USERS:
         await update.message.reply_text(
             "👋 *Вітаю!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
             parse_mode="Markdown",
             reply_markup=main_keyboard()
         )
+        return
+    
+    # Если в ожидании — сообщаем
+    for pending in PENDING_USERS:
+        if pending['user_id'] == user_id:
+            await update.message.reply_text(
+                "⏳ *Ваша заявка ще розглядається адміністратором.*\n\nОчікуйте, будь ласка.",
+                parse_mode="Markdown"
+            )
+            return
+    
+    # Новый пользователь — просим имя
+    context.user_data['awaiting_name'] = True
+    await update.message.reply_text(
+        "👋 *Доброго дня!*\n\n"
+        "Будь ласка, напиши своє *ім'я та прізвище*, щоб адміністратор міг тебе ідентифікувати.\n\n"
+        "_Наприклад: Іван Петренко_",
+        parse_mode="Markdown"
+    )
 
-# ========== ОБРАБОТКА КНОПОК ==========
-async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ========== ОБРАБОТКА ТЕКСТА ==========
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    text = update.message.text  # <-- ЭТОЙ СТРОКИ НЕТ!
-    today_idx = datetime.now(tz).weekday()  # <-- И ЭТОЙ!
+    text = update.message.text
+    
+    # Если ждём имя от нового пользователя
+    if context.user_data.get('awaiting_name'):
+        context.user_data['awaiting_name'] = False
+        
+        # Сохраняем в ожидающие
+        PENDING_USERS.append({
+            'user_id': user_id,
+            'name': text,
+            'username': update.effective_user.username or "",
+            'date': datetime.now().isoformat()
+        })
+        save_pending(PENDING_USERS)
+        
+        # Уведомляем админа
+        keyboard = [[
+            InlineKeyboardButton("✅ Прийняти", callback_data=f"approve_{user_id}"),
+            InlineKeyboardButton("❌ Відхилити", callback_data=f"reject_{user_id}")
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"🆕 *Нова заявка!*\n\n"
+                 f"👤 *Ім'я:* {text}\n"
+                 f"📱 *Username:* @{update.effective_user.username}\n"
+                 f"🆔 *ID:* `{user_id}`",
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
+        
+        await update.message.reply_text(
+            "✅ *Дякуємо!* Ваше ім'я отримано.\n\n"
+            "⏳ Очікуйте на підтвердження адміністратора.",
+            parse_mode="Markdown"
+        )
+        return
     
     # Проверка на блокировку
     if user_id in BLOCKED_USERS and user_id != ADMIN_ID:
         await update.message.reply_text("⛔ Доступ заборонено.")
         return
     
-    # ... остальной код
+    # Проверка на подтверждение
+    if user_id not in NOTIFY_USERS and user_id != ADMIN_ID:
+        await update.message.reply_text(
+            "⏳ Ваша заявка ще розглядається. Очікуйте.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Обработка кнопок
+    today_idx = datetime.now(tz).weekday()
     
     if text == "📅 Сьогодні":
         await show_day(update, today_idx)
@@ -215,6 +325,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "👑 Адмін панель" and user_id == ADMIN_ID:
         await show_admin_panel(update)
 
+# ========== ФУНКЦИИ РАСПИСАНИЯ ==========
 async def show_day(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
     lessons = SCHEDULE[day_key]
@@ -290,51 +401,39 @@ async def show_links_keyboard(update: Update, day_idx: int):
 
 # ========== АДМИН ПАНЕЛЬ ==========
 async def show_admin_panel(update: Update):
-    """Показывает список пользователей с кнопками для удаления и блокировки"""
+    """Показывает список пользователей"""
     text = "👑 *Адмін панель*\n\n"
-    text += f"📊 Всього користувачів: {len(NOTIFY_USERS)}\n"
-    text += f"🚫 Заблоковано: {len(BLOCKED_USERS)}\n\n"
-    text += "*Список користувачів:*\n"
     
+    # Ожидающие
+    if PENDING_USERS:
+        text += "*⏳ Очікують підтвердження:*\n"
+        keyboard = []
+        for pending in PENDING_USERS:
+            name = pending['name']
+            user_id = pending['user_id']
+            username = pending['username']
+            text += f"• {name} (@{username}) — `{user_id}`\n"
+            keyboard.append([InlineKeyboardButton(
+                f"✅ {name}", 
+                callback_data=f"approve_{user_id}"
+            )])
+        text += "\n"
+    
+    # Подтверждённые
+    text += "*✅ Підтверджені користувачі:*\n"
     keyboard = []
     for user_id in NOTIFY_USERS:
         if user_id != ADMIN_ID:
+            name = USER_NAMES.get(str(user_id), "Невідомий")
+            username = USER_USERNAMES.get(str(user_id), "")
             status = "🔴 Заблокований" if user_id in BLOCKED_USERS else "🟢 Активний"
-            text += f"• `{user_id}` — {status}\n"
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"❌ Видалити", 
-                    callback_data=f"kick_{user_id}"
-                ),
-                InlineKeyboardButton(
-                    f"🚫 Блокувати" if user_id not in BLOCKED_USERS else "✅ Розблокувати", 
-                    callback_data=f"toggle_block_{user_id}"
-                )
-            ])
+            text += f"• {name} (@{username}) — `{user_id}` — {status}\n"
+            keyboard.append([InlineKeyboardButton(
+                f"⚙️ {name}", 
+                callback_data=f"user_{user_id}"
+            )])
     
-    if keyboard:
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=reply_markup)
-    else:
-        text += "\n*Немає інших користувачів*"
-        await update.message.reply_text(text, parse_mode="Markdown")
-
-async def kick_user(user_id: int, query):
-    """Удаляет пользователя из списка уведомлений"""
-    global NOTIFY_USERS
-    if user_id in NOTIFY_USERS and user_id != ADMIN_ID:
-        NOTIFY_USERS.remove(user_id)
-        save_users(NOTIFY_USERS)
-        await query.edit_message_text(
-            f"✅ Користувача `{user_id}` видалено зі списку сповіщень.",
-            parse_mode="Markdown"
-        )
-        logger.info(f"Пользователь {user_id} удален из NOTIFY_USERS")
-    else:
-        await query.edit_message_text(
-            f"❌ Не вдалося видалити користувача `{user_id}`.",
-            parse_mode="Markdown"
-        )
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 # ========== ОБРАБОТКА ИНЛАЙН-КНОПОК ==========
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -344,31 +443,76 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = update.effective_user.id
     
-    # Обработка блокировки/разблокировки
-    if data.startswith("toggle_block_"):
+    # Обработка подтверждения заявки
+    if data.startswith("approve_"):
         if user_id != ADMIN_ID:
-            await query.edit_message_text("⛔ Тільки адмін може блокувати користувачів.")
+            await query.edit_message_text("⛔ Тільки адмін може підтверджувати.")
             return
-        target_id = int(data.split("_")[2])
         
-        if target_id in BLOCKED_USERS:
-            BLOCKED_USERS.remove(target_id)
-            save_blocked(BLOCKED_USERS)
-            await query.edit_message_text(f"✅ Користувача `{target_id}` розблоковано.")
-        else:
-            BLOCKED_USERS.append(target_id)
-            save_blocked(BLOCKED_USERS)
-            await query.edit_message_text(f"🚫 Користувача `{target_id}` заблоковано.")
-        logger.info(f"Пользователь {target_id} {'разблокирован' if target_id not in BLOCKED_USERS else 'заблокирован'}")
+        target_id = int(data.split("_")[1])
+        
+        # Находим заявку
+        for pending in PENDING_USERS:
+            if pending['user_id'] == target_id:
+                # Сохраняем имя и username
+                USER_NAMES[str(target_id)] = pending['name']
+                USER_USERNAMES[str(target_id)] = pending['username']
+                save_user_names(USER_NAMES)
+                save_user_usernames(USER_USERNAMES)
+                
+                # Добавляем в подтверждённые
+                if target_id not in NOTIFY_USERS:
+                    NOTIFY_USERS.append(target_id)
+                    save_users(NOTIFY_USERS)
+                
+                # Удаляем из ожидающих
+                PENDING_USERS.remove(pending)
+                save_pending(PENDING_USERS)
+                
+                await query.edit_message_text(f"✅ Користувача *{pending['name']}* підтверджено!", parse_mode="Markdown")
+                
+                # Уведомляем пользователя
+                try:
+                    await context.bot.send_message(
+                        chat_id=target_id,
+                        text="✅ *Вітаю!* Адміністратор підтвердив вашу заявку.\n\n"
+                             "Напишіть /start, щоб почати користуватись ботом.",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+                return
+        
+        await query.edit_message_text("❌ Заявку не знайдено.")
         return
     
-    # Проверка на удаление
-    if data.startswith("kick_"):
+    # Обработка отклонения заявки
+    if data.startswith("reject_"):
         if user_id != ADMIN_ID:
-            await query.edit_message_text("⛔ Тільки адмін може видаляти користувачів.")
+            await query.edit_message_text("⛔ Тільки адмін може відхиляти.")
             return
+        
         target_id = int(data.split("_")[1])
-        await kick_user(target_id, query)
+        
+        for pending in PENDING_USERS:
+            if pending['user_id'] == target_id:
+                PENDING_USERS.remove(pending)
+                save_pending(PENDING_USERS)
+                
+                await query.edit_message_text(f"❌ Заявку *{pending['name']}* відхилено.", parse_mode="Markdown")
+                
+                # Уведомляем пользователя
+                try:
+                    await context.bot.send_message(
+                        chat_id=target_id,
+                        text="❌ *На жаль*, адміністратор відхилив вашу заявку.",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+                return
+        
+        await query.edit_message_text("❌ Заявку не знайдено.")
         return
     
     # Обработка ссылок на уроки
@@ -396,10 +540,12 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
     """Отправляет уведомление о начале урока"""
     lesson_name = context.job.data['name']
     lesson_link = context.job.data['link']
-    lesson_time = context.job.data['time']
     notification_type = context.job.data.get('type', 'start')
     
     for user_id in NOTIFY_USERS:
+        if user_id in BLOCKED_USERS:
+            continue
+            
         if notification_type == 'reminder':
             text = f"⏳ *За 5 хвилин урок:* {lesson_name}"
         else:
@@ -418,24 +564,21 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown",
                 reply_markup=reply_markup
             )
-            logger.info(f"Уведомление '{notification_type}' для {lesson_name} отправлено {user_id}")
         except Exception as e:
             logger.error(f"Ошибка отправки {user_id}: {e}")
 
 def schedule_lessons(app: Application):
     """Планирует все уроки (за 5 минут и в начало)"""
     for day_key, lessons in SCHEDULE.items():
-        # Получаем номер дня недели (0-6)
         day_num = list(DAY_MAP.keys())[list(DAY_MAP.values()).index(day_key)]
         
         for lesson in lessons:
             if not lesson['time']:
                 continue
                 
-            # Парсим время
             hour, minute = map(int, lesson['time'].split(':'))
             
-            # Уведомление за 5 минут до урока
+            # За 5 минут
             reminder_hour = hour
             reminder_minute = minute - 5
             if reminder_minute < 0:
@@ -446,34 +589,30 @@ def schedule_lessons(app: Application):
             reminder_job_data = {
                 'name': lesson['name'],
                 'link': lesson['link'],
-                'time': lesson['time'],
                 'type': 'reminder'
             }
             app.job_queue.run_daily(
                 send_lesson_notification,
                 time=reminder_time,
                 days=(day_num,),
-                data=reminder_job_data,
-                name=f"{lesson['name']}_reminder"
+                data=reminder_job_data
             )
             
-            # Уведомление в начале урока
+            # В начале
             start_time = time(hour=hour, minute=minute, second=0)
             start_job_data = {
                 'name': lesson['name'],
                 'link': lesson['link'],
-                'time': lesson['time'],
                 'type': 'start'
             }
             app.job_queue.run_daily(
                 send_lesson_notification,
                 time=start_time,
                 days=(day_num,),
-                data=start_job_data,
-                name=f"{lesson['name']}_start"
+                data=start_job_data
             )
     
-    logger.info(f"✅ Все уроки запланированы. Всего пользователей: {len(NOTIFY_USERS)}")
+    logger.info(f"✅ Все уроки запланированы")
 
 # ========== ЗАПУСК ==========
 def main():
@@ -483,15 +622,13 @@ def main():
     
     app = Application.builder().token(BOT_TOKEN).build()
     
-    # Команды и кнопки
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    # Планирование уроков
     schedule_lessons(app)
     
-    logger.info(f"🚀 Бот запущен. Уведомления будут получать: {NOTIFY_USERS}")
+    logger.info(f"🚀 Бот запущен")
     app.run_polling()
 
 # ========== ДЛЯ RENDER ==========
@@ -505,9 +642,5 @@ def run_flask():
     flask_app.run(host='0.0.0.0', port=10000)
 
 if __name__ == "__main__":
-    # Запускаем Flask в фоне
     threading.Thread(target=run_flask, daemon=True).start()
-    # Запускаем бота
     main()
-
-
