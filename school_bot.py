@@ -3,6 +3,8 @@ import logging
 import time
 import os
 import threading
+import signal
+import sys
 from datetime import time as dt_time, datetime, date, timedelta
 from functools import wraps
 from pathlib import Path
@@ -19,6 +21,14 @@ from telegram.ext import (
 )
 
 from flask import Flask, jsonify
+
+# ========== ОБРАБОТКА СИГНАЛОВ ==========
+def signal_handler(sig, frame):
+    print("Получен сигнал завершения, останавливаюсь...")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 # ========== НАЛАШТУВАННЯ ЛОГУВАННЯ ==========
 logging.basicConfig(
@@ -93,7 +103,7 @@ schedule = {
         (dt_time(14, 0),  "⚛ Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1"),
         (dt_time(15, 0),  "🏃 Фізична культура", "https://us04web.zoom.us/j/9199278785?pwd=V"),
     ],
-    3: [  # Четверг
+    3: [  # Четвер
         (dt_time(9, 0),   "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(10, 0),  "🏛 Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
         (dt_time(11, 0),  "📖 Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
@@ -511,9 +521,11 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
     """Надсилає гарне нагадування про урок із кнопкою для приєднання."""
     job = context.job
     lesson_time, lesson_name, lesson_link = job.data
+    logger.info(f"🔔 Отправляю уведомление для урока: {lesson_name} в {lesson_time.strftime('%H:%M')}")
 
     for uid in approved_users:
         if is_on_holiday(uid):
+            logger.info(f"   Пользователь {uid} на каникулах, пропускаем")
             continue
 
         # Формуємо гарне повідомлення
@@ -536,11 +548,13 @@ async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown",
                 reply_markup=reply_markup
             )
+            logger.info(f"   Уведомление отправлено пользователю {uid}")
         except Exception as e:
-            logger.error(f"Не вдалося надіслати сповіщення користувачу {uid}: {e}")
+            logger.error(f"   Ошибка отправки пользователю {uid}: {e}")
 
 def schedule_all_lessons(app: Application):
     """Планує всі уроки."""
+    count = 0
     for day, lessons in schedule.items():
         for lesson_time, lesson_name, lesson_link in lessons:
             tz_time = dt_time(hour=lesson_time.hour, minute=lesson_time.minute, tzinfo=TIMEZONE)
@@ -550,7 +564,15 @@ def schedule_all_lessons(app: Application):
                 days=(day,),
                 data=(lesson_time, lesson_name, lesson_link)
             )
-    logger.info("✅ Усі уроки заплановано.")
+            count += 1
+    logger.info(f"✅ Усі уроки заплановано. Всего задач: {count}")
+
+# ========== ДЛЯ ОТЛАДКИ: ПОКАЗАТЬ ЗАПЛАНИРОВАННЫЕ ЗАДАЧИ ==========
+def list_jobs(app):
+    jobs = app.job_queue.jobs()
+    logger.info(f"📋 Запланировано задач: {len(jobs)}")
+    for job in jobs:
+        logger.info(f"   - {job.name} в {job.next_t}")
 
 # ========== ОСНОВНА ФУНКЦІЯ ЗАПУСКУ БОТА ==========
 def main():
@@ -573,6 +595,9 @@ def main():
 
     # Планування уроків
     schedule_all_lessons(app)
+    
+    # Показать запланированные задачи (отладка)
+    list_jobs(app)
 
     logger.info("🚀 Бот успішно запущено!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -593,7 +618,12 @@ def run_flask():
 
 def run_bot():
     print("🟢 Запускаю поток бота...")
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"❌ Ошибка в потоке бота: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     # Запускаємо Flask в окремому потоці (демон, щоб закривався разом із ботом)
@@ -602,6 +632,3 @@ if __name__ == "__main__":
     flask_thread.start()
     # Запускаємо бота в головному потоці
     run_bot()
-
-
-
