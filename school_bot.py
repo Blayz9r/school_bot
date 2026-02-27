@@ -1,8 +1,10 @@
 import logging
 import os
 import json
+import threading
 from datetime import datetime, time, timedelta
 import pytz
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
@@ -234,7 +236,7 @@ def schedule_lessons(app):
     
     logger.info("✅ Усі уроки заплановано")
 
-# ========== ЗАПУСК ==========
+# ========== ОСНОВНОЙ ЗАПУСК ==========
 def main():
     if not BOT_TOKEN:
         logger.error("❌ Токен не знайдено")
@@ -250,5 +252,16 @@ def main():
     logger.info("🚀 Бот запущено")
     app.run_polling()
 
+# ========== FLASK ДЛЯ RENDER ==========
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot is running"
+
+def run_flask():
+    flask_app.run(host='0.0.0.0', port=10000)
+
 if __name__ == "__main__":
+    threading.Thread(target=run_flask, daemon=True).start()
     main()
