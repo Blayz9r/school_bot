@@ -21,109 +21,41 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 # Часовой пояс (Киев)
 tz = pytz.timezone('Europe/Kiev')
 
-# ID админа (твой)
+# ID админа
 ADMIN_ID = 1823742969
 
-# Файлы для хранения данных
-USERS_FILE = "users.json"              # ID пользователей
-PENDING_FILE = "pending.json"          # Ожидающие подтверждения
-USER_NAMES_FILE = "user_names.json"    # Имена пользователей
-USER_USERNAMES_FILE = "user_usernames.json"  # Username'ы
-BLOCKED_FILE = "blocked.json"          # Заблокированные
+# Файлы для хранения
+USERS_FILE = "users.json"
+PENDING_FILE = "pending.json"
+USER_NAMES_FILE = "user_names.json"
+USER_USERNAMES_FILE = "user_usernames.json"
+BLOCKED_FILE = "blocked.json"
 
-# Загрузка пользователей
-def load_users():
+# ========== РАБОТА С ФАЙЛАМИ ==========
+def load_json(file, default=None):
     try:
-        if os.path.exists(USERS_FILE):
-            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+        if os.path.exists(file):
+            with open(file, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        logger.error(f"Ошибка загрузки пользователей: {e}")
-    return [ADMIN_ID]
+        logger.error(f"Ошибка загрузки {file}: {e}")
+    return default if default is not None else []
 
-def save_users(users):
+def save_json(file, data):
     try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
+        with open(file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.error(f"Ошибка сохранения пользователей: {e}")
-
-# Загрузка ожидающих
-def load_pending():
-    try:
-        if os.path.exists(PENDING_FILE):
-            with open(PENDING_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки ожидающих: {e}")
-    return []
-
-def save_pending(pending):
-    try:
-        with open(PENDING_FILE, 'w', encoding='utf-8') as f:
-            json.dump(pending, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Ошибка сохранения ожидающих: {e}")
-
-# Загрузка имён пользователей
-def load_user_names():
-    try:
-        if os.path.exists(USER_NAMES_FILE):
-            with open(USER_NAMES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки имён: {e}")
-    return {}
-
-def save_user_names(names):
-    try:
-        with open(USER_NAMES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(names, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Ошибка сохранения имён: {e}")
-
-# Загрузка username'ов
-def load_user_usernames():
-    try:
-        if os.path.exists(USER_USERNAMES_FILE):
-            with open(USER_USERNAMES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки username'ов: {e}")
-    return {}
-
-def save_user_usernames(usernames):
-    try:
-        with open(USER_USERNAMES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(usernames, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Ошибка сохранения username'ов: {e}")
-
-# Загрузка заблокированных
-def load_blocked():
-    try:
-        if os.path.exists(BLOCKED_FILE):
-            with open(BLOCKED_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки блокированных: {e}")
-    return []
-
-def save_blocked(blocked):
-    try:
-        with open(BLOCKED_FILE, 'w', encoding='utf-8') as f:
-            json.dump(blocked, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Ошибка сохранения блокированных: {e}")
+        logger.error(f"Ошибка сохранения {file}: {e}")
 
 # Загружаем все данные
-NOTIFY_USERS = load_users()
-PENDING_USERS = load_pending()
-USER_NAMES = load_user_names()
-USER_USERNAMES = load_user_usernames()
-BLOCKED_USERS = load_blocked()
+NOTIFY_USERS = load_json(USERS_FILE, [ADMIN_ID])
+PENDING_USERS = load_json(PENDING_FILE, [])
+USER_NAMES = load_json(USER_NAMES_FILE, {})
+USER_USERNAMES = load_json(USER_USERNAMES_FILE, {})
+BLOCKED_USERS = load_json(BLOCKED_FILE, [])
 
-# Твоё полное расписание со ссылками
+# ========== РАСПИСАНИЕ ==========
 SCHEDULE = {
     "monday": [
         {"time": "09:00", "name": "Хімія // Географія", "link": "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"},
@@ -174,7 +106,7 @@ SCHEDULE = {
     "sunday": []
 }
 
-# Дни недели по-украински
+# Дни недели
 DAYS_UA = {
     "monday": "Понеділок",
     "tuesday": "Вівторок",
@@ -185,7 +117,6 @@ DAYS_UA = {
     "sunday": "Неділя"
 }
 
-# Соответствие индекса datetime и ключа
 DAY_MAP = {
     0: "monday",
     1: "tuesday",
@@ -214,52 +145,46 @@ def admin_keyboard():
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-# ========== ОБРАБОТЧИКИ КОМАНД ==========
+# ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Если админ — сразу даём доступ
+    # Админ
     if user_id == ADMIN_ID:
         await update.message.reply_text(
-            "👋 *Вітаю, адміністраторе!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
+            "👋 *Вітаю, адміністраторе!*",
             parse_mode="Markdown",
             reply_markup=admin_keyboard()
         )
         return
     
-    # Если уже подтверждён — даём доступ
+    # Уже подтверждён
     if user_id in NOTIFY_USERS:
         await update.message.reply_text(
-            "👋 *Вітаю!*\n\nЯ твій шкільний помічник. Обери дію нижче 👇",
+            "👋 *Вітаю!*",
             parse_mode="Markdown",
             reply_markup=main_keyboard()
         )
         return
     
-    # Если в ожидании — сообщаем
-    for pending in PENDING_USERS:
-        if pending['user_id'] == user_id:
-            await update.message.reply_text(
-                "⏳ *Ваша заявка ще розглядається адміністратором.*\n\nОчікуйте, будь ласка.",
-                parse_mode="Markdown"
-            )
+    # В ожидании
+    for p in PENDING_USERS:
+        if p['user_id'] == user_id:
+            await update.message.reply_text("⏳ Ваша заявка розглядається.")
             return
     
-    # Новый пользователь — просим имя
+    # Новый пользователь
     context.user_data['awaiting_name'] = True
     await update.message.reply_text(
-        "👋 *Доброго дня!*\n\n"
-        "Будь ласка, напиши своє *ім'я та прізвище*, щоб адміністратор міг тебе ідентифікувати.\n\n"
-        "_Наприклад: Іван Петренко_",
+        "👋 *Доброго дня!*\n\nНапишіть своє ім'я та прізвище:",
         parse_mode="Markdown"
     )
 
-# ========== ОБРАБОТКА ТЕКСТА ==========
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
     
-    # Если ждём имя от нового пользователя
+    # Если ждём имя
     if context.user_data.get('awaiting_name'):
         context.user_data['awaiting_name'] = False
         
@@ -270,43 +195,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'username': update.effective_user.username or "",
             'date': datetime.now().isoformat()
         })
-        save_pending(PENDING_USERS)
+        save_json(PENDING_FILE, PENDING_USERS)
         
         # Уведомляем админа
         keyboard = [[
             InlineKeyboardButton("✅ Прийняти", callback_data=f"approve_{user_id}"),
-            InlineKeyboardButton("❌ Відхилити", callback_data=f"reject_{user_id}")
+            InKeyboardButton("❌ Відхилити", callback_data=f"reject_{user_id}")
         ]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
         await context.bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"🆕 *Нова заявка!*\n\n"
-                 f"👤 *Ім'я:* {text}\n"
-                 f"📱 *Username:* @{update.effective_user.username}\n"
-                 f"🆔 *ID:* `{user_id}`",
+            text=f"🆕 *Нова заявка*\n\nІм'я: {text}\nID: `{user_id}`",
             parse_mode="Markdown",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         
-        await update.message.reply_text(
-            "✅ *Дякуємо!* Ваше ім'я отримано.\n\n"
-            "⏳ Очікуйте на підтвердження адміністратора.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("✅ Ім'я отримано. Очікуйте підтвердження.")
         return
     
-    # Проверка на блокировку
-    if user_id in BLOCKED_USERS and user_id != ADMIN_ID:
+    # Проверка доступа
+    if user_id in BLOCKED_USERS:
         await update.message.reply_text("⛔ Доступ заборонено.")
         return
     
-    # Проверка на подтверждение
     if user_id not in NOTIFY_USERS and user_id != ADMIN_ID:
-        await update.message.reply_text(
-            "⏳ Ваша заявка ще розглядається. Очікуйте.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("⏳ Ваша заявка розглядається.")
         return
     
     # Обработка кнопок
@@ -325,7 +237,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "👑 Адмін панель" and user_id == ADMIN_ID:
         await show_admin_panel(update)
 
-# ========== ФУНКЦИИ РАСПИСАНИЯ ==========
 async def show_day(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
     lessons = SCHEDULE[day_key]
@@ -338,7 +249,6 @@ async def show_day(update: Update, day_idx: int):
     text = f"📅 *{day_name}*\n"
     for lesson in lessons:
         text += f"⏰ {lesson['time']} – {lesson['name']}\n"
-    
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def show_week(update: Update):
@@ -360,7 +270,7 @@ async def next_lesson(update: Update, today_idx: int):
     for lesson in SCHEDULE[day_key]:
         if lesson['time'] > current_time:
             await update.message.reply_text(
-                f"⏭ *Наступний урок сьогодні:*\n\n{lesson['time']} – {lesson['name']}",
+                f"⏭ *Наступний урок сьогодні:*\n{lesson['time']} – {lesson['name']}",
                 parse_mode="Markdown"
             )
             return
@@ -370,11 +280,11 @@ async def next_lesson(update: Update, today_idx: int):
     if SCHEDULE[day_key]:
         lesson = SCHEDULE[day_key][0]
         await update.message.reply_text(
-            f"📅 Сьогодні уроків більше немає.\n\n⏭ *Завтра перший урок:*\n{lesson['time']} – {lesson['name']}",
+            f"📅 Сьогодні уроків немає.\n\n⏭ *Завтра перший урок:*\n{lesson['time']} – {lesson['name']}",
             parse_mode="Markdown"
         )
     else:
-        await update.message.reply_text("🎉 Найближчих уроків немає. Відпочивай!")
+        await update.message.reply_text("🎉 Вихідний")
 
 async def show_links_keyboard(update: Update, day_idx: int):
     day_key = DAY_MAP[day_idx]
@@ -393,45 +303,30 @@ async def show_links_keyboard(update: Update, day_idx: int):
             )])
     
     if not keyboard:
-        await update.message.reply_text("🔗 Сьогодні немає уроків з посиланнями.")
+        await update.message.reply_text("🔗 Немає уроків з посиланнями.")
         return
     
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🔗 Оберіть урок:", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "🔗 Оберіть урок:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-# ========== АДМИН ПАНЕЛЬ ==========
 async def show_admin_panel(update: Update):
-    """Показывает список пользователей"""
     text = "👑 *Адмін панель*\n\n"
     
-    # Ожидающие
     if PENDING_USERS:
-        text += "*⏳ Очікують підтвердження:*\n"
-        keyboard = []
-        for pending in PENDING_USERS:
-            name = pending['name']
-            user_id = pending['user_id']
-            username = pending['username']
-            text += f"• {name} (@{username}) — `{user_id}`\n"
-            keyboard.append([InlineKeyboardButton(
-                f"✅ {name}", 
-                callback_data=f"approve_{user_id}"
-            )])
+        text += "*⏳ Очікують:*\n"
+        for p in PENDING_USERS:
+            text += f"• {p['name']} (@{p['username']}) — `{p['user_id']}`\n"
         text += "\n"
     
-    # Подтверждённые
-    text += "*✅ Підтверджені користувачі:*\n"
-    keyboard = []
-    for user_id in NOTIFY_USERS:
-        if user_id != ADMIN_ID:
-            name = USER_NAMES.get(str(user_id), "Невідомий")
-            username = USER_USERNAMES.get(str(user_id), "")
-            status = "🔴 Заблокований" if user_id in BLOCKED_USERS else "🟢 Активний"
-            text += f"• {name} (@{username}) — `{user_id}` — {status}\n"
-            keyboard.append([InlineKeyboardButton(
-                f"⚙️ {name}", 
-                callback_data=f"user_{user_id}"
-            )])
+    text += "*✅ Підтверджені:*\n"
+    for uid in NOTIFY_USERS:
+        if uid != ADMIN_ID:
+            name = USER_NAMES.get(str(uid), str(uid))
+            username = USER_USERNAMES.get(str(uid), "")
+            status = "🔴" if uid in BLOCKED_USERS else "🟢"
+            text += f"{status} {name} (@{username}) — `{uid}`\n"
     
     await update.message.reply_text(text, parse_mode="Markdown")
 
@@ -443,176 +338,114 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = update.effective_user.id
     
-    # Обработка подтверждения заявки
+    # Подтверждение заявки
     if data.startswith("approve_"):
         if user_id != ADMIN_ID:
-            await query.edit_message_text("⛔ Тільки адмін може підтверджувати.")
             return
         
         target_id = int(data.split("_")[1])
-        
-        # Находим заявку
-        for pending in PENDING_USERS:
-            if pending['user_id'] == target_id:
-                # Сохраняем имя и username
-                USER_NAMES[str(target_id)] = pending['name']
-                USER_USERNAMES[str(target_id)] = pending['username']
-                save_user_names(USER_NAMES)
-                save_user_usernames(USER_USERNAMES)
+        for p in PENDING_USERS:
+            if p['user_id'] == target_id:
+                USER_NAMES[str(target_id)] = p['name']
+                USER_USERNAMES[str(target_id)] = p['username']
+                save_json(USER_NAMES_FILE, USER_NAMES)
+                save_json(USER_USERNAMES_FILE, USER_USERNAMES)
                 
-                # Добавляем в подтверждённые
                 if target_id not in NOTIFY_USERS:
                     NOTIFY_USERS.append(target_id)
-                    save_users(NOTIFY_USERS)
+                    save_json(USERS_FILE, NOTIFY_USERS)
                 
-                # Удаляем из ожидающих
-                PENDING_USERS.remove(pending)
-                save_pending(PENDING_USERS)
+                PENDING_USERS.remove(p)
+                save_json(PENDING_FILE, PENDING_USERS)
                 
-                await query.edit_message_text(f"✅ Користувача *{pending['name']}* підтверджено!", parse_mode="Markdown")
+                await query.edit_message_text(f"✅ {p['name']} підтверджений!")
                 
-                # Уведомляем пользователя
                 try:
                     await context.bot.send_message(
-                        chat_id=target_id,
-                        text="✅ *Вітаю!* Адміністратор підтвердив вашу заявку.\n\n"
-                             "Напишіть /start, щоб почати користуватись ботом.",
-                        parse_mode="Markdown"
+                        target_id,
+                        "✅ *Вітаю!* Адміністратор підтвердив вашу заявку.\nНапишіть /start"
                     )
                 except:
                     pass
                 return
-        
-        await query.edit_message_text("❌ Заявку не знайдено.")
-        return
     
-    # Обработка отклонения заявки
+    # Отклонение заявки
     if data.startswith("reject_"):
         if user_id != ADMIN_ID:
-            await query.edit_message_text("⛔ Тільки адмін може відхиляти.")
             return
         
         target_id = int(data.split("_")[1])
-        
-        for pending in PENDING_USERS:
-            if pending['user_id'] == target_id:
-                PENDING_USERS.remove(pending)
-                save_pending(PENDING_USERS)
-                
-                await query.edit_message_text(f"❌ Заявку *{pending['name']}* відхилено.", parse_mode="Markdown")
-                
-                # Уведомляем пользователя
-                try:
-                    await context.bot.send_message(
-                        chat_id=target_id,
-                        text="❌ *На жаль*, адміністратор відхилив вашу заявку.",
-                        parse_mode="Markdown"
-                    )
-                except:
-                    pass
+        for p in PENDING_USERS:
+            if p['user_id'] == target_id:
+                PENDING_USERS.remove(p)
+                save_json(PENDING_FILE, PENDING_USERS)
+                await query.edit_message_text(f"❌ {p['name']} відхилений!")
                 return
-        
-        await query.edit_message_text("❌ Заявку не знайдено.")
-        return
     
-    # Обработка ссылок на уроки
+    # Ссылки на уроки
     if data.startswith("link_"):
         parts = data.split("_")
         day_idx = int(parts[1])
         lesson_idx = int(parts[2])
         
-        day_key = DAY_MAP[day_idx]
-        lesson = SCHEDULE[day_key][lesson_idx]
-        
+        lesson = SCHEDULE[DAY_MAP[day_idx]][lesson_idx]
         if lesson['link']:
             keyboard = [[InlineKeyboardButton("🔗 Відкрити Zoom", url=lesson['link'])]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(
-                f"🔗 *{lesson['time']} – {lesson['name']}*\n\nНатисни кнопку нижче, щоб приєднатися:",
+                f"🔗 *{lesson['time']} – {lesson['name']}*",
                 parse_mode="Markdown",
-                reply_markup=reply_markup
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
-        else:
-            await query.edit_message_text(f"❌ Для уроку *{lesson['name']}* немає посилання.", parse_mode="Markdown")
 
-# ========== ПЛАНИРОВЩИК УРОКОВ ==========
+# ========== ПЛАНИРОВЩИК ==========
 async def send_lesson_notification(context: ContextTypes.DEFAULT_TYPE):
-    """Отправляет уведомление о начале урока"""
-    lesson_name = context.job.data['name']
-    lesson_link = context.job.data['link']
-    notification_type = context.job.data.get('type', 'start')
-    
-    for user_id in NOTIFY_USERS:
-        if user_id in BLOCKED_USERS:
+    lesson = context.job.data
+    for uid in NOTIFY_USERS:
+        if uid in BLOCKED_USERS:
             continue
-            
-        if notification_type == 'reminder':
-            text = f"⏳ *За 5 хвилин урок:* {lesson_name}"
-        else:
-            text = f"⏰ *Почався урок:* {lesson_name}"
+        
+        text = f"⏰ *Почався урок:* {lesson['name']}" if lesson['type'] == 'start' else f"⏳ *За 5 хвилин:* {lesson['name']}"
         
         reply_markup = None
-        if lesson_link:
-            keyboard = [[InlineKeyboardButton("🔗 Приєднатися до Zoom", url=lesson_link)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            text += "\n\nНатисни кнопку нижче, щоб приєднатися 👇"
+        if lesson['link']:
+            reply_markup = InlineKeyboardMarkup([[
+                InlineKeyboardButton("🔗 Приєднатися", url=lesson['link'])
+            ]])
         
         try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=text,
-                parse_mode="Markdown",
-                reply_markup=reply_markup
-            )
-        except Exception as e:
-            logger.error(f"Ошибка отправки {user_id}: {e}")
+            await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=reply_markup)
+        except:
+            pass
 
-def schedule_lessons(app: Application):
-    """Планирует все уроки (за 5 минут и в начало)"""
+def schedule_lessons(app):
     for day_key, lessons in SCHEDULE.items():
         day_num = list(DAY_MAP.keys())[list(DAY_MAP.values()).index(day_key)]
         
         for lesson in lessons:
             if not lesson['time']:
                 continue
-                
-            hour, minute = map(int, lesson['time'].split(':'))
+            
+            h, m = map(int, lesson['time'].split(':'))
             
             # За 5 минут
-            reminder_hour = hour
-            reminder_minute = minute - 5
-            if reminder_minute < 0:
-                reminder_hour -= 1
-                reminder_minute += 60
+            rh, rm = (h, m-5) if m>=5 else (h-1, m+55)
+            if rh >= 0:
+                app.job_queue.run_daily(
+                    send_lesson_notification,
+                    time=time(rh, rm),
+                    days=(day_num,),
+                    data={**lesson, 'type': 'reminder'}
+                )
             
-            reminder_time = time(hour=reminder_hour, minute=reminder_minute, second=0)
-            reminder_job_data = {
-                'name': lesson['name'],
-                'link': lesson['link'],
-                'type': 'reminder'
-            }
+            # Начало
             app.job_queue.run_daily(
                 send_lesson_notification,
-                time=reminder_time,
+                time=time(h, m),
                 days=(day_num,),
-                data=reminder_job_data
-            )
-            
-            # В начале
-            start_time = time(hour=hour, minute=minute, second=0)
-            start_job_data = {
-                'name': lesson['name'],
-                'link': lesson['link'],
-                'type': 'start'
-            }
-            app.job_queue.run_daily(
-                send_lesson_notification,
-                time=start_time,
-                days=(day_num,),
-                data=start_job_data
+                data={**lesson, 'type': 'start'}
             )
     
-    logger.info(f"✅ Все уроки запланированы")
+    logger.info("✅ Уроки заплановані")
 
 # ========== ЗАПУСК ==========
 def main():
@@ -628,10 +461,10 @@ def main():
     
     schedule_lessons(app)
     
-    logger.info(f"🚀 Бот запущен")
+    logger.info("🚀 Бот запущен")
     app.run_polling()
 
-# ========== ДЛЯ RENDER ==========
+# ========== FLASK ДЛЯ RENDER ==========
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
