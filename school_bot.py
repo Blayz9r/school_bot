@@ -27,24 +27,26 @@ def load_users():
                 return json.load(f)
     except:
         pass
-    return [ADMIN_ID]  # если файла нет, только админ
+    return [ADMIN_ID]
 
 def save_users(users):
     with open(USERS_FILE, 'w', encoding='utf-8') as f:
         json.dump(users, f, ensure_ascii=False, indent=2)
 
-# Загружаем пользователей
 approved_users = load_users()
 
 # ========== РАСПИСАНИЕ ==========
+# Теперь для спаренных уроков указываем несколько ссылок
 schedule = {
     0: [  # Понедельник
-        ("09:00", "Хімія // Географія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
+        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
+        ("09:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096"),
         ("10:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09"),
         ("11:00", "Іноземна мова (англійська)", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09"),
         ("12:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
         ("13:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
-        ("14:00", "Інформатика // Мистецтво", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1"),
+        ("14:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1"),
+        ("14:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09"),
         ("15:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
     ],
     1: [  # Вторник
@@ -101,11 +103,7 @@ def main_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    if user_id == ADMIN_ID:
-        await update.message.reply_text("👋 Вітаю!", reply_markup=main_keyboard())
-        return
-    
-    if user_id in approved_users:
+    if user_id == ADMIN_ID or user_id in approved_users:
         await update.message.reply_text("👋 Вітаю!", reply_markup=main_keyboard())
     else:
         await update.message.reply_text("❌ Доступ заборонено. Зверніться до адміністратора.")
@@ -136,9 +134,14 @@ async def show_day(update, day):
         await update.message.reply_text(f"📅 *{days_ua[day]}* – вихідний", parse_mode="Markdown")
         return
     
+    # Группируем по времени для красивого вывода
     text = f"📅 *{days_ua[day]}*\n"
+    last_time = None
     for t, name, _ in lessons:
-        text += f"⏰ {t} – {name}\n"
+        if t != last_time:
+            text += f"⏰ {t}\n"
+            last_time = t
+        text += f"  • {name}\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def show_week(update):
@@ -147,8 +150,12 @@ async def show_week(update):
         lessons = schedule[day]
         if lessons:
             text += f"*{days_ua[day]}:*\n"
+            last_time = None
             for t, name, _ in lessons:
-                text += f"  ⏰ {t} – {name}\n"
+                if t != last_time:
+                    text += f"  ⏰ {t}\n"
+                    last_time = t
+                text += f"    • {name}\n"
             text += "\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
@@ -206,6 +213,11 @@ async def send_notification(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     t, name, link = job.data
     
+    # Проверяем, что сегодня именно тот день, для которого запланирован урок
+    today = datetime.now(tz).weekday()
+    if today != job.data[3]:  # день недели сохраняем в job.data[3]
+        return
+    
     for uid in approved_users:
         try:
             if job.name == "reminder":
@@ -229,10 +241,22 @@ def schedule_lessons(app):
             # За 5 минут
             rh, rm = (h, m-5) if m >= 5 else (h-1, m+55)
             if rh >= 0:
-                app.job_queue.run_daily(send_notification, time(rh, rm), days=(day,), data=(t, name, link), name="reminder")
+                app.job_queue.run_daily(
+                    send_notification, 
+                    time(rh, rm, tzinfo=tz), 
+                    days=(day,), 
+                    data=(t, name, link, day), 
+                    name="reminder"
+                )
             
             # Начало
-            app.job_queue.run_daily(send_notification, time(h, m), days=(day,), data=(t, name, link), name="start")
+            app.job_queue.run_daily(
+                send_notification, 
+                time(h, m, tzinfo=tz), 
+                days=(day,), 
+                data=(t, name, link, day), 
+                name="start"
+            )
     
     logger.info("✅ Усі уроки заплановано")
 
