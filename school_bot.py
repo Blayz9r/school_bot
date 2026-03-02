@@ -233,6 +233,7 @@ def schedule_lessons(app):
     logger.info("✅ Уроки запланированы")
 
 # ========== ОСНОВНАЯ ФУНКЦИЯ БОТА ==========
+# ========== ОСНОВНАЯ ФУНКЦИЯ БОТА ==========
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -254,34 +255,22 @@ def health():
     return jsonify({"status": "ok"})
 
 def run_flask():
-    """Запускает Flask сервер"""
+    """Запускает Flask сервер в фоне"""
     logger.info("🌐 Запуск Flask на порту 10000...")
     flask_app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)
 
-def run_bot():
-    """Запускает бота с задержкой"""
-    time.sleep(3)  # Даём Flask время подняться
-    logger.info("🤖 Запуск бота...")
+# ========== ТОЧКА ВХОДА ==========
+if __name__ == "__main__":
+    import threading
+    
+    # Запускаем Flask в отдельном потоке (daemon=True значит, что он закроется при выходе)
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("🌐 Flask запущен в фоновом потоке")
+    
+    # Запускаем бота в ГЛАВНОМ потоке (здесь и должно быть)
+    logger.info("🤖 Запуск бота в главном потоке...")
     try:
         main()
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
-
-# ========== ТОЧКА ВХОДА ==========
-if __name__ == "__main__":
-    # Запускаем Flask в отдельном потоке
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    
-    # Запускаем бота в отдельном потоке
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    # Держим главный поток живым
-    logger.info("💓 Главный процесс запущен, сервисы работают в фоне")
-    try:
-        while True:
-            time.sleep(60)
-            logger.debug("Главный поток жив")
-    except KeyboardInterrupt:
-        logger.info("🛑 Получен сигнал остановки")
