@@ -1,25 +1,30 @@
 import logging
 import os
+import threading
 from datetime import datetime, time, timedelta
 import pytz
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Логи
+# Настройка логирования
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Токен
+# Токен из переменных окружения Render
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.error("❌ Токен не найден! Убедись, что переменная BOT_TOKEN задана на Render.")
+    exit(1)
+
+# Твой часовой пояс
 tz = pytz.timezone('Europe/Kiev')
 ADMIN_ID = 1823742969
 
-# Кто получает уведомления — ТОЛЬКО ТЫ
+# Кто получает уведомления
 allowed_users = [ADMIN_ID]
 
-# ========== ТВОЁ РАСПИСАНИЕ ==========
-# Формат: (час:минута, название, ссылка)
-# Для спаренных уроков — две отдельные строки с одинаковым временем
+# --- ТВОЁ РАСПИСАНИЕ (исправленное) ---
 schedule = {
     0: [  # Понедельник
         ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
@@ -71,7 +76,6 @@ schedule = {
     5: [],  # Суббота
     6: [],  # Воскресенье
 }
-
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
 
 # ========== КНОПКИ ==========
@@ -89,14 +93,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Доступ запрещен.")
 
-# ========== КНОПКИ ==========
+# ========== ОБРАБОТКА КНОПОК ==========
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in allowed_users:
         return
-    
+
     text = update.message.text
     today = datetime.now(tz).weekday()
-    
+
     if text == "📅 Сьогодні":
         await show_day(update, today)
     elif text == "📆 Завтра":
@@ -176,31 +180,32 @@ async def callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_notification(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     t, name, link, target_day = job.data
-    
+
     today = datetime.now(tz).weekday()
     if today != target_day:
         return
-    
+
     for uid in allowed_users:
         try:
             if job.name == "reminder":
                 text = f"⏳ *Через 5 минут:* {name}"
             else:
                 text = f"⏰ *Урок начался:* {name}"
-            
+
             if link:
                 keyboard = [[InlineKeyboardButton("🔗 Присоединиться", url=link)]]
                 await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
             else:
                 await context.bot.send_message(uid, text, parse_mode="Markdown")
+            logger.info(f"Уведомление '{job.name}' для '{name}' отправлено")
         except Exception as e:
-            logger.error(f"Ошибка: {e}")
+            logger.error(f"Ошибка отправки: {e}")
 
 def schedule_lessons(app):
     for day, lessons in schedule.items():
         for t, name, link in lessons:
             h, m = map(int, t.split(':'))
-            
+
             # За 5 минут
             rh, rm = (h, m-5) if m >= 5 else (h-1, m+55)
             if rh >= 0:
@@ -211,7 +216,7 @@ def schedule_lessons(app):
                     data=(t, name, link, day),
                     name="reminder"
                 )
-            
+
             # Начало урока
             app.job_queue.run_daily(
                 send_notification,
@@ -222,21 +227,33 @@ def schedule_lessons(app):
             )
     logger.info("✅ Уроки запланированы")
 
-# ========== ЗАПУСК ==========
+# ========== ЗАПУСК БОТА ==========
 def main():
-    if not BOT_TOKEN:
-        logger.error("❌ Нет токена")
-        return
-    
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
     app.add_handler(CallbackQueryHandler(callback))
-    
     schedule_lessons(app)
-    
     logger.info("🚀 Бот запущен")
     app.run_polling()
 
+# ========== FLASK-СЕРВЕР ДЛЯ RENDER ==========
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot is running"
+
+@flask_app.route('/health')
+def health():
+    return {"status": "ok"}
+
+def run_flask():
+    flask_app.run(host='0.0.0.0', port=10000)
+
 if __name__ == "__main__":
+    # Запускаем Flask в фоновом потоке (демон, чтобы закрылся вместе с ботом)
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    # Запускаем бота в главном потоке
     main()
