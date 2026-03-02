@@ -1,30 +1,34 @@
 import logging
 import os
 import threading
-from datetime import datetime, time, timedelta
+import time
+from datetime import datetime, time as dt_time, timedelta
 import pytz
-from flask import Flask
+from flask import Flask, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Настройка логирования
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+# ========== НАСТРОЙКА ЛОГИРОВАНИЯ ==========
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# Токен из переменных окружения Render
+# ========== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ==========
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     logger.error("❌ Токен не найден! Убедись, что переменная BOT_TOKEN задана на Render.")
     exit(1)
 
-# Твой часовой пояс
+# ========== ЧАСОВОЙ ПОЯС ==========
 tz = pytz.timezone('Europe/Kiev')
 ADMIN_ID = 1823742969
 
-# Кто получает уведомления
+# Кто получает уведомления (только ты)
 allowed_users = [ADMIN_ID]
 
-# --- ТВОЁ РАСПИСАНИЕ (исправленное) ---
+# ========== ТВОЁ РАСПИСАНИЕ ==========
 schedule = {
     0: [  # Понедельник
         ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
@@ -76,6 +80,7 @@ schedule = {
     5: [],  # Суббота
     6: [],  # Воскресенье
 }
+
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
 
 # ========== КНОПКИ ==========
@@ -211,7 +216,7 @@ def schedule_lessons(app):
             if rh >= 0:
                 app.job_queue.run_daily(
                     send_notification,
-                    time(rh, rm, tzinfo=tz),
+                    dt_time(rh, rm, tzinfo=tz),
                     days=(day,),
                     data=(t, name, link, day),
                     name="reminder"
@@ -220,14 +225,14 @@ def schedule_lessons(app):
             # Начало урока
             app.job_queue.run_daily(
                 send_notification,
-                time(h, m, tzinfo=tz),
+                dt_time(h, m, tzinfo=tz),
                 days=(day,),
                 data=(t, name, link, day),
                 name="start"
             )
     logger.info("✅ Уроки запланированы")
 
-# ========== ЗАПУСК БОТА ==========
+# ========== ОСНОВНАЯ ФУНКЦИЯ БОТА ==========
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -237,7 +242,7 @@ def main():
     logger.info("🚀 Бот запущен")
     app.run_polling()
 
-# ========== FLASK-СЕРВЕР ДЛЯ RENDER ==========
+# ========== FLASK ДЛЯ RENDER ==========
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -246,14 +251,37 @@ def home():
 
 @flask_app.route('/health')
 def health():
-    return {"status": "ok"}
+    return jsonify({"status": "ok"})
 
 def run_flask():
-    flask_app.run(host='0.0.0.0', port=10000)
+    """Запускает Flask сервер"""
+    logger.info("🌐 Запуск Flask на порту 10000...")
+    flask_app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)
 
+def run_bot():
+    """Запускает бота с задержкой"""
+    time.sleep(3)  # Даём Flask время подняться
+    logger.info("🤖 Запуск бота...")
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"❌ Ошибка бота: {e}")
+
+# ========== ТОЧКА ВХОДА ==========
 if __name__ == "__main__":
-    # Запускаем Flask в фоновом потоке (демон, чтобы закрылся вместе с ботом)
+    # Запускаем Flask в отдельном потоке
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    # Запускаем бота в главном потоке
-    main()
+    
+    # Запускаем бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    
+    # Держим главный поток живым
+    logger.info("💓 Главный процесс запущен, сервисы работают в фоне")
+    try:
+        while True:
+            time.sleep(60)
+            logger.debug("Главный поток жив")
+    except KeyboardInterrupt:
+        logger.info("🛑 Получен сигнал остановки")
