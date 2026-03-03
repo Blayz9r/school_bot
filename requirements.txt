@@ -1,5 +1,3 @@
-python-telegram-bot[job-queue]
+requests
 pytz
 Flask
-python-dotenv
-requests
