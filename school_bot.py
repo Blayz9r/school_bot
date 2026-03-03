@@ -1,30 +1,33 @@
-import logging
-import os
+import json
+import time
 import threading
-from datetime import datetime, time
+import requests
+from datetime import datetime, timedelta
 import pytz
-from flask import Flask
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Логи
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ========== НАСТРОЙКИ ==========
+with open('config.json', 'r', encoding='utf-8') as f:
+    config = json.load(f)
+    TOKEN = config['token']
+    ADMIN_ID = config['admin_id']
 
-# Токен
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    logger.error("❌ Токен не найден")
-    exit(1)
-
-# Часовой пояс
 tz = pytz.timezone('Europe/Kiev')
-ADMIN_ID = 1823742969
 allowed_users = [ADMIN_ID]
 
-# ========== РАСПИСАНИЕ НА ВТОРНИК ==========
+# ========== РАСПИСАНИЕ ==========
 schedule = {
-    1: [  # Вторник (индекс 1)
+    0: [  # Понедельник
+        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
+        ("09:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096"),
+        ("10:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("11:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09"),
+        ("12:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
+        ("13:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
+        ("14:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1"),
+        ("14:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09"),
+        ("15:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+    ],
+    1: [  # Вторник
         ("09:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
         ("10:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
         ("11:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1"),
@@ -33,182 +36,208 @@ schedule = {
         ("14:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
         ("15:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
     ],
+    2: [  # Среда
+        ("09:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1"),
+        ("10:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096"),
+        ("11:00", "Зарубіжна література", "https://us04web.zoom.us/j/9721960165?pwd=yYQs8qczfNK9soiSgiSHFXOLXEi2al.1"),
+        ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09"),
+        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1"),
+        ("15:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V"),
+    ],
+    3: [  # Четверг
+        ("09:00", "Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
+        ("10:00", "Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
+        ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
+        ("12:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1"),
+        ("13:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("14:00", "Захист України", None),
+        ("15:00", "Захист України", None),
+    ],
+    4: [  # Пятница
+        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
+        ("10:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
+        ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
+        ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("13:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1"),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V"),
+        ("15:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09"),
+    ],
+    5: [],  # Суббота
+    6: [],  # Воскресенье
 }
 
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
 
-# ========== КНОПКИ ==========
-def main_keyboard():
-    return ReplyKeyboardMarkup([
-        [KeyboardButton("📅 Сьогодні"), KeyboardButton("📆 Завтра")],
-        [KeyboardButton("📋 Тиждень"), KeyboardButton("⏭ Наступний урок")],
-        [KeyboardButton("🔗 Посилання")]
-    ], resize_keyboard=True)
+# ========== ФУНКЦИИ ОТПРАВКИ ==========
+def send_message(chat_id, text, keyboard=None):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    data = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    if keyboard:
+        data["reply_markup"] = json.dumps(keyboard)
+    try:
+        requests.post(url, data=data)
+    except:
+        pass
 
-# ========== СТАРТ ==========
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id in allowed_users:
-        await update.message.reply_text("👋 Привет!", reply_markup=main_keyboard())
-    else:
-        await update.message.reply_text("❌ Доступ запрещен.")
+def send_notification(lesson_time, lesson_name, lesson_link, notification_type):
+    """Отправляет уведомление о уроке"""
+    for uid in allowed_users:
+        if notification_type == "reminder":
+            text = f"⏳ *Через 5 минут:* {lesson_name}"
+        else:
+            text = f"⏰ *Урок начался:* {lesson_name}"
+        
+        keyboard = None
+        if lesson_link:
+            keyboard = {
+                "inline_keyboard": [[
+                    {"text": "🔗 Присоединиться", "url": lesson_link}
+                ]]
+            }
+        send_message(uid, text, keyboard)
 
-# ========== КНОПКИ ==========
-async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in allowed_users:
-        return
+# ========== ПЛАНИРОВЩИК ==========
+def check_lessons():
+    """Проверяет каждую минуту, не пора ли отправить уведомление"""
+    while True:
+        now = datetime.now(tz)
+        current_time = now.strftime("%H:%M")
+        today = now.weekday()
+        
+        for t, name, link in schedule.get(today, []):
+            # Проверяем начало урока
+            if t == current_time:
+                send_notification(t, name, link, "start")
+            
+            # Проверяем за 5 минут до урока
+            h, m = map(int, t.split(':'))
+            reminder_time = (datetime.now(tz).replace(hour=h, minute=m, second=0) - timedelta(minutes=5)).strftime("%H:%M")
+            if reminder_time == current_time:
+                send_notification(t, name, link, "reminder")
+        
+        time.sleep(60)  # Проверяем каждую минуту
 
-    text = update.message.text
-    today = datetime.now(tz).weekday()
+# ========== ОБРАБОТКА КОМАНД ==========
+def handle_updates():
+    """Получает и обрабатывает обновления от Telegram"""
+    offset = 0
+    while True:
+        url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
+        params = {"timeout": 30, "offset": offset}
+        
+        try:
+            r = requests.get(url, params=params, timeout=35)
+            updates = r.json().get("result", [])
+            
+            for update in updates:
+                offset = update["update_id"] + 1
+                
+                # Проверяем, что есть сообщение
+                if "message" not in update:
+                    continue
+                
+                chat_id = update["message"]["chat"]["id"]
+                text = update["message"].get("text", "")
+                
+                # Проверка доступа
+                if chat_id not in allowed_users:
+                    send_message(chat_id, "❌ Доступ запрещен.")
+                    continue
+                
+                # Обработка команд
+                if text == "/start":
+                    keyboard = {
+                        "keyboard": [
+                            [{"text": "📅 Сьогодні"}, {"text": "📆 Завтра"}],
+                            [{"text": "📋 Тиждень"}, {"text": "⏭ Наступний урок"}],
+                            [{"text": "🔗 Посилання"}]
+                        ],
+                        "resize_keyboard": True
+                    }
+                    send_message(chat_id, "👋 Привет!", keyboard)
+                
+                elif text == "📅 Сьогодні":
+                    show_day(chat_id, today)
+                elif text == "📆 Завтра":
+                    show_day(chat_id, (today + 1) % 7)
+                elif text == "📋 Тиждень":
+                    show_week(chat_id)
+                elif text == "⏭ Наступний урок":
+                    show_next_lesson(chat_id, today)
+                elif text == "🔗 Посилання":
+                    show_links(chat_id, today)
+        
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            time.sleep(5)
 
-    if text == "📅 Сьогодні":
-        await show_day(update, today)
-    elif text == "📆 Завтра":
-        await show_day(update, (today + 1) % 7)
-    elif text == "📋 Тиждень":
-        await show_week(update)
-    elif text == "⏭ Наступний урок":
-        await next_lesson(update, today)
-    elif text == "🔗 Посилання":
-        await show_links(update, today)
-
-async def show_day(update, day):
+def show_day(chat_id, day):
     lessons = schedule.get(day, [])
     if not lessons:
-        await update.message.reply_text(f"📅 *{days_ua[day]}* – выходной", parse_mode="Markdown")
+        send_message(chat_id, f"📅 *{days_ua[day]}* – выходной")
         return
+    
     text = f"📅 *{days_ua[day]}*\n"
     for t, name, _ in lessons:
         text += f"⏰ {t} – {name}\n"
-    await update.message.reply_text(text, parse_mode="Markdown")
+    send_message(chat_id, text)
 
-async def show_week(update):
+def show_week(chat_id):
     text = "📋 *Неделя*\n\n"
-    for day, lessons in schedule.items():
+    for day in range(5):
+        lessons = schedule.get(day, [])
         if lessons:
             text += f"*{days_ua[day]}:*\n"
             for t, name, _ in lessons:
                 text += f"  ⏰ {t} – {name}\n"
             text += "\n"
-    await update.message.reply_text(text, parse_mode="Markdown")
+    send_message(chat_id, text)
 
-async def next_lesson(update, today):
+def show_next_lesson(chat_id, today):
     now = datetime.now(tz).strftime("%H:%M")
     for t, name, _ in schedule.get(today, []):
         if t > now:
-            await update.message.reply_text(f"⏭ *Следующий урок:* {t} – {name}", parse_mode="Markdown")
+            send_message(chat_id, f"⏭ *Следующий урок:* {t} – {name}")
             return
     tomorrow = (today + 1) % 7
     if schedule.get(tomorrow, []):
         t, name, _ = schedule[tomorrow][0]
-        await update.message.reply_text(f"📅 Завтра первый урок: {t} – {name}", parse_mode="Markdown")
+        send_message(chat_id, f"📅 Завтра первый урок: {t} – {name}")
     else:
-        await update.message.reply_text("🎉 Уроков нет")
+        send_message(chat_id, "🎉 Уроков нет")
 
-async def show_links(update, day):
+def show_links(chat_id, day):
     lessons = schedule.get(day, [])
     if not lessons:
-        await update.message.reply_text("📭 Сегодня уроков нет")
+        send_message(chat_id, "📭 Сегодня уроков нет")
         return
-    keyboard = []
+    
+    keyboard = {"inline_keyboard": []}
     for i, (t, name, link) in enumerate(lessons):
         if link:
-            keyboard.append([InlineKeyboardButton(f"{t} – {name}", callback_data=f"link_{day}_{i}")])
-    if not keyboard:
-        await update.message.reply_text("🔗 Сегодня нет ссылок")
+            keyboard["inline_keyboard"].append([
+                {"text": f"{t} – {name}", "callback_data": f"link_{day}_{i}"}
+            ])
+    
+    if not keyboard["inline_keyboard"]:
+        send_message(chat_id, "🔗 Сегодня нет ссылок")
         return
-    await update.message.reply_text("🔗 Выбери урок:", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    send_message(chat_id, "🔗 Выбери урок:", keyboard)
 
-# ========== КОЛБЭКИ ==========
-async def callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    if data.startswith("link_"):
-        _, d, i = data.split("_")
-        t, name, link = schedule[int(d)][int(i)]
-        if link:
-            keyboard = [[InlineKeyboardButton("🔗 Присоединиться", url=link)]]
-            await query.edit_message_text(
-                f"🔗 *{t} – {name}*",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-
-# ========== УВЕДОМЛЕНИЯ ==========
-async def send_notification(context: ContextTypes.DEFAULT_TYPE):
-    job = context.job
-    t, name, link, target_day = job.data
-
-    today = datetime.now(tz).weekday()
-    if today != target_day:
-        return
-
-    for uid in allowed_users:
-        try:
-            if job.name == "reminder":
-                text = f"⏳ *Через 5 минут:* {name}"
-            else:
-                text = f"⏰ *Урок начался:* {name}"
-
-            if link:
-                keyboard = [[InlineKeyboardButton("🔗 Присоединиться", url=link)]]
-                await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
-            else:
-                await context.bot.send_message(uid, text, parse_mode="Markdown")
-            logger.info(f"Уведомление для '{name}' отправлено")
-        except Exception as e:
-            logger.error(f"Ошибка отправки: {e}")
-
-def schedule_lessons(app):
-    for day, lessons in schedule.items():
-        for t, name, link in lessons:
-            h, m = map(int, t.split(':'))
-
-            # За 5 минут
-            rh, rm = (h, m-5) if m >= 5 else (h-1, m+55)
-            if rh >= 0:
-                app.job_queue.run_daily(
-                    send_notification,
-                    time(rh, rm, tzinfo=tz),
-                    days=(day,),
-                    data=(t, name, link, day),
-                    name="reminder"
-                )
-
-            # Начало урока
-            app.job_queue.run_daily(
-                send_notification,
-                time(h, m, tzinfo=tz),
-                days=(day,),
-                data=(t, name, link, day),
-                name="start"
-            )
-    logger.info("✅ Уроки запланированы")
-
-# ========== ЗАПУСК БОТА ==========
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
-    app.add_handler(CallbackQueryHandler(callback))
-    schedule_lessons(app)
-    logger.info("🚀 Бот запущен")
-    app.run_polling()
-
-# ========== FLASK ДЛЯ RENDER ==========
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def home():
-    return "Bot is running"
-
-@flask_app.route('/health')
-def health():
-    return {"status": "ok"}
-
-def run_flask():
-    flask_app.run(host='0.0.0.0', port=10000)
-
+# ========== ЗАПУСК ==========
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, daemon=True).start()
-    main()
+    print("🚀 Бот запущен")
+    print("📨 Уведомления будут приходить по расписанию")
+    
+    # Запускаем планировщик в отдельном потоке
+    scheduler_thread = threading.Thread(target=check_lessons, daemon=True)
+    scheduler_thread.start()
+    
+    # Запускаем обработчик команд
+    handle_updates()
