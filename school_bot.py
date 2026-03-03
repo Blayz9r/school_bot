@@ -1,13 +1,13 @@
 import logging
 import os
 import threading
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 import pytz
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# Логирование
+# Логи
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,12 +22,17 @@ tz = pytz.timezone('Europe/Kiev')
 ADMIN_ID = 1823742969
 allowed_users = [ADMIN_ID]
 
-# ========== РАСПИСАНИЕ (ТОЛЬКО ПОНЕДЕЛЬНИК ДЛЯ ТЕСТА) ==========
+# ========== РАСПИСАНИЕ НА ВТОРНИК ==========
 schedule = {
-    0: [  # Понедельник
-        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1"),
-        ("09:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096"),
-    ]
+    1: [  # Вторник (индекс 1)
+        ("09:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("10:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
+        ("11:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1"),
+        ("12:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1"),
+        ("13:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09"),
+        ("14:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1"),
+        ("15:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1"),
+    ],
 }
 
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
@@ -35,7 +40,9 @@ days_ua = ["Понеділок", "Вівторок", "Середа", "Четве
 # ========== КНОПКИ ==========
 def main_keyboard():
     return ReplyKeyboardMarkup([
-        [KeyboardButton("📅 Сьогодні")],
+        [KeyboardButton("📅 Сьогодні"), KeyboardButton("📆 Завтра")],
+        [KeyboardButton("📋 Тиждень"), KeyboardButton("⏭ Наступний урок")],
+        [KeyboardButton("🔗 Посилання")]
     ], resize_keyboard=True)
 
 # ========== СТАРТ ==========
@@ -55,9 +62,17 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "📅 Сьогодні":
         await show_day(update, today)
+    elif text == "📆 Завтра":
+        await show_day(update, (today + 1) % 7)
+    elif text == "📋 Тиждень":
+        await show_week(update)
+    elif text == "⏭ Наступний урок":
+        await next_lesson(update, today)
+    elif text == "🔗 Посилання":
+        await show_links(update, today)
 
 async def show_day(update, day):
-    lessons = schedule[day]
+    lessons = schedule.get(day, [])
     if not lessons:
         await update.message.reply_text(f"📅 *{days_ua[day]}* – выходной", parse_mode="Markdown")
         return
@@ -66,14 +81,75 @@ async def show_day(update, day):
         text += f"⏰ {t} – {name}\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
+async def show_week(update):
+    text = "📋 *Неделя*\n\n"
+    for day, lessons in schedule.items():
+        if lessons:
+            text += f"*{days_ua[day]}:*\n"
+            for t, name, _ in lessons:
+                text += f"  ⏰ {t} – {name}\n"
+            text += "\n"
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+async def next_lesson(update, today):
+    now = datetime.now(tz).strftime("%H:%M")
+    for t, name, _ in schedule.get(today, []):
+        if t > now:
+            await update.message.reply_text(f"⏭ *Следующий урок:* {t} – {name}", parse_mode="Markdown")
+            return
+    tomorrow = (today + 1) % 7
+    if schedule.get(tomorrow, []):
+        t, name, _ = schedule[tomorrow][0]
+        await update.message.reply_text(f"📅 Завтра первый урок: {t} – {name}", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("🎉 Уроков нет")
+
+async def show_links(update, day):
+    lessons = schedule.get(day, [])
+    if not lessons:
+        await update.message.reply_text("📭 Сегодня уроков нет")
+        return
+    keyboard = []
+    for i, (t, name, link) in enumerate(lessons):
+        if link:
+            keyboard.append([InlineKeyboardButton(f"{t} – {name}", callback_data=f"link_{day}_{i}")])
+    if not keyboard:
+        await update.message.reply_text("🔗 Сегодня нет ссылок")
+        return
+    await update.message.reply_text("🔗 Выбери урок:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+# ========== КОЛБЭКИ ==========
+async def callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    if data.startswith("link_"):
+        _, d, i = data.split("_")
+        t, name, link = schedule[int(d)][int(i)]
+        if link:
+            keyboard = [[InlineKeyboardButton("🔗 Присоединиться", url=link)]]
+            await query.edit_message_text(
+                f"🔗 *{t} – {name}*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
 # ========== УВЕДОМЛЕНИЯ ==========
 async def send_notification(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
-    t, name, link = job.data
+    t, name, link, target_day = job.data
+
+    today = datetime.now(tz).weekday()
+    if today != target_day:
+        return
 
     for uid in allowed_users:
         try:
-            text = f"⏰ *Урок начался:* {name}"
+            if job.name == "reminder":
+                text = f"⏳ *Через 5 минут:* {name}"
+            else:
+                text = f"⏰ *Урок начался:* {name}"
+
             if link:
                 keyboard = [[InlineKeyboardButton("🔗 Присоединиться", url=link)]]
                 await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -87,11 +163,25 @@ def schedule_lessons(app):
     for day, lessons in schedule.items():
         for t, name, link in lessons:
             h, m = map(int, t.split(':'))
+
+            # За 5 минут
+            rh, rm = (h, m-5) if m >= 5 else (h-1, m+55)
+            if rh >= 0:
+                app.job_queue.run_daily(
+                    send_notification,
+                    time(rh, rm, tzinfo=tz),
+                    days=(day,),
+                    data=(t, name, link, day),
+                    name="reminder"
+                )
+
+            # Начало урока
             app.job_queue.run_daily(
                 send_notification,
                 time(h, m, tzinfo=tz),
                 days=(day,),
-                data=(t, name, link)
+                data=(t, name, link, day),
+                name="start"
             )
     logger.info("✅ Уроки запланированы")
 
@@ -100,6 +190,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
+    app.add_handler(CallbackQueryHandler(callback))
     schedule_lessons(app)
     logger.info("🚀 Бот запущен")
     app.run_polling()
