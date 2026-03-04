@@ -9,15 +9,24 @@ from flask import Flask
 
 # ========== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ==========
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))
 
-if not BOT_TOKEN or not ADMIN_ID:
-    print("❌ Ошибка: BOT_TOKEN и ADMIN_ID должны быть заданы в переменных окружения")
+# Получаем строку с ID из переменной окружения (например: "1823742969,123456789,987654321")
+admin_ids_str = os.environ.get("ADMIN_IDS", "1823742969")
+# Разбиваем строку по запятой, убираем пробелы и преобразуем в числа
+allowed_users = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+
+if not BOT_TOKEN:
+    print("❌ Ошибка: BOT_TOKEN должен быть задан в переменных окружения")
+    exit(1)
+
+if not allowed_users:
+    print("❌ Ошибка: Не указаны ID пользователей (ADMIN_IDS)")
     exit(1)
 
 # ========== НАСТРОЙКИ ==========
 tz = pytz.timezone('Europe/Kiev')
-allowed_users = [ADMIN_ID]
+# Строка "allowed_users = [ADMIN_ID]" УДАЛЕНА!
+
 
 # ========== РАСПИСАНИЕ ==========
 schedule = {
@@ -260,7 +269,7 @@ def run_flask():
 if __name__ == "__main__":
     print("🚀 Бот запускается...")
     print(f"🤖 Токен: {BOT_TOKEN[:10]}...")
-    print(f"👤 Admin ID: {ADMIN_ID}")
+    print(f"👤 Разрешённые пользователи: {allowed_users}")
     
     # Запускаем Flask в отдельном потоке
     flask_thread = threading.Thread(target=run_flask, daemon=True)
