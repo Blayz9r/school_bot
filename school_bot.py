@@ -7,26 +7,49 @@ from datetime import datetime, timedelta
 import pytz
 from flask import Flask
 
-# ========== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ==========
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+# ========== УНИВЕРСАЛЬНЫЙ ЗАГРУЗЧИК КОНФИГА ==========
+BOT_TOKEN = None
+allowed_users = []
 
-# Получаем строку с ID из переменной окружения (например: "1823742969,123456789,987654321")
-admin_ids_str = os.environ.get("ADMIN_IDS", "1823742969")
-# Разбиваем строку по запятой, убираем пробелы и преобразуем в числа
-allowed_users = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+# Сначала пробуем взять из переменных окружения (Render)
+if os.environ.get("BOT_TOKEN"):
+    BOT_TOKEN = os.environ.get("BOT_TOKEN")
+    admin_ids_str = os.environ.get("ADMIN_IDS", "")
+    if admin_ids_str:
+        allowed_users = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+    print("✅ Загружено из переменных окружения (Render)")
 
+# Если не получилось — пробуем из config.json (локально)
+if not BOT_TOKEN or not allowed_users:
+    try:
+        with open('config.json', 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            BOT_TOKEN = config.get('token')
+            # В config.json может быть один admin_id или список
+            if 'admin_ids' in config:
+                allowed_users = config['admin_ids']
+            elif 'admin_id' in config:
+                allowed_users = [config['admin_id']]
+        print("✅ Загружено из config.json (локально)")
+    except FileNotFoundError:
+        print("❌ Файл config.json не найден")
+    except Exception as e:
+        print(f"❌ Ошибка загрузки config.json: {e}")
+
+# Финальная проверка
 if not BOT_TOKEN:
-    print("❌ Ошибка: BOT_TOKEN должен быть задан в переменных окружения")
+    print("❌ Ошибка: BOT_TOKEN не найден ни в переменных окружения, ни в config.json")
     exit(1)
 
 if not allowed_users:
-    print("❌ Ошибка: Не указаны ID пользователей (ADMIN_IDS)")
+    print("❌ Ошибка: Не указаны ID пользователей")
     exit(1)
+
+print(f"🤖 Токен: {BOT_TOKEN[:10]}...")
+print(f"👤 Разрешённые пользователи: {allowed_users}")
 
 # ========== НАСТРОЙКИ ==========
 tz = pytz.timezone('Europe/Kiev')
-# Строка "allowed_users = [ADMIN_ID]" УДАЛЕНА!
-
 
 # ========== РАСПИСАНИЕ ==========
 schedule = {
@@ -98,24 +121,7 @@ def send_message(chat_id, text, keyboard=None):
     except Exception as e:
         print(f"Ошибка отправки: {e}")
 
-def send_notification(lesson_name, lesson_link, notification_type):
-    """Отправляет уведомление о уроке"""
-    for uid in allowed_users:
-        if notification_type == "reminder":
-            text = f"⏳ *Через 5 минут:* {lesson_name}"
-        else:
-            text = f"⏰ *Урок начался:* {lesson_name}"
-        
-        keyboard = None
-        if lesson_link:
-            keyboard = {
-                "inline_keyboard": [[
-                    {"text": "🔗 Присоединиться", "url": lesson_link}
-                ]]
-            }
-        send_message(uid, text, keyboard)
-
-# ========== ПЛАНИРОВЩИК ==========
+# ========== ПЛАНИРОВЩИК С ГРУППИРОВКОЙ УРОКОВ ==========
 def check_lessons():
     """Проверяет каждую минуту, не пора ли отправить уведомление"""
     while True:
@@ -124,18 +130,85 @@ def check_lessons():
             current_time = now.strftime("%H:%M")
             today = now.weekday()
             
+            # Группируем уроки по времени
+            lessons_by_time = {}
             for t, name, link in schedule.get(today, []):
+                if t not in lessons_by_time:
+                    lessons_by_time[t] = []
+                lessons_by_time[t].append((name, link))
+            
+            # Проверяем каждое время
+            for t, lessons_list in lessons_by_time.items():
                 # Проверяем начало урока
                 if t == current_time:
-                    send_notification(name, link, "start")
-                    print(f"[{current_time}] Отправлено начало: {name}")
+                    if len(lessons_list) == 1:
+                        # Один урок — обычное уведомление
+                        name, link = lessons_list[0]
+                        text = f"⏰ *Урок начался:* {name}"
+                        keyboard = None
+                        if link:
+                            keyboard = {
+                                "inline_keyboard": [[
+                                    {"text": "🔗 Присоединиться", "url": link}
+                                ]]
+                            }
+                        for uid in allowed_users:
+                            send_message(uid, text, keyboard)
+                        print(f"[{current_time}] Отправлено начало: {name}")
+                    else:
+                        # Несколько уроков — общее уведомление
+                        names = [item[0] for item in lessons_list]
+                        text = f"⏰ *Урок начался:* {', '.join(names)}"
+                        
+                        # Создаём клавиатуру с несколькими кнопками
+                        keyboard = {"inline_keyboard": []}
+                        for name, link in lessons_list:
+                            if link:
+                                keyboard["inline_keyboard"].append([
+                                    {"text": f"🔗 {name}", "url": link}
+                                ])
+                        
+                        for uid in allowed_users:
+                            if keyboard["inline_keyboard"]:
+                                send_message(uid, text, keyboard)
+                            else:
+                                send_message(uid, text)
+                        print(f"[{current_time}] Отправлено общее начало: {', '.join(names)}")
                 
                 # Проверяем за 5 минут до урока
                 h, m = map(int, t.split(':'))
                 reminder_time = (now.replace(hour=h, minute=m, second=0) - timedelta(minutes=5)).strftime("%H:%M")
                 if reminder_time == current_time:
-                    send_notification(name, link, "reminder")
-                    print(f"[{current_time}] Отправлено напоминание: {name}")
+                    if len(lessons_list) == 1:
+                        name, link = lessons_list[0]
+                        text = f"⏳ *Через 5 минут:* {name}"
+                        keyboard = None
+                        if link:
+                            keyboard = {
+                                "inline_keyboard": [[
+                                    {"text": "🔗 Присоединиться", "url": link}
+                                ]]
+                            }
+                        for uid in allowed_users:
+                            send_message(uid, text, keyboard)
+                        print(f"[{current_time}] Отправлено напоминание: {name}")
+                    else:
+                        names = [item[0] for item in lessons_list]
+                        text = f"⏳ *Через 5 минут:* {', '.join(names)}"
+                        
+                        keyboard = {"inline_keyboard": []}
+                        for name, link in lessons_list:
+                            if link:
+                                keyboard["inline_keyboard"].append([
+                                    {"text": f"🔗 {name}", "url": link}
+                                ])
+                        
+                        for uid in allowed_users:
+                            if keyboard["inline_keyboard"]:
+                                send_message(uid, text, keyboard)
+                            else:
+                                send_message(uid, text)
+                        print(f"[{current_time}] Отправлено общее напоминание: {', '.join(names)}")
         except Exception as e:
             print(f"Ошибка в планировщике: {e}")
         
@@ -198,14 +271,22 @@ def handle_updates():
             time.sleep(5)
 
 def show_day(chat_id, day):
+    # Группируем для красивого отображения
     lessons = schedule.get(day, [])
     if not lessons:
         send_message(chat_id, f"📅 *{days_ua[day]}* – выходной")
         return
     
-    text = f"📅 *{days_ua[day]}*\n"
+    # Группируем по времени для вывода
+    lessons_by_time = {}
     for t, name, _ in lessons:
-        text += f"⏰ {t} – {name}\n"
+        if t not in lessons_by_time:
+            lessons_by_time[t] = []
+        lessons_by_time[t].append(name)
+    
+    text = f"📅 *{days_ua[day]}*\n"
+    for t, names in sorted(lessons_by_time.items()):
+        text += f"⏰ {t} – {', '.join(names)}\n"
     send_message(chat_id, text)
 
 def show_week(chat_id):
@@ -213,22 +294,47 @@ def show_week(chat_id):
     for day in range(5):
         lessons = schedule.get(day, [])
         if lessons:
-            text += f"*{days_ua[day]}:*\n"
+            # Группируем по времени
+            lessons_by_time = {}
             for t, name, _ in lessons:
-                text += f"  ⏰ {t} – {name}\n"
+                if t not in lessons_by_time:
+                    lessons_by_time[t] = []
+                lessons_by_time[t].append(name)
+            
+            text += f"*{days_ua[day]}:*\n"
+            for t, names in sorted(lessons_by_time.items()):
+                text += f"  ⏰ {t} – {', '.join(names)}\n"
             text += "\n"
     send_message(chat_id, text)
 
 def show_next_lesson(chat_id, today):
     now = datetime.now(tz).strftime("%H:%M")
+    
+    # Группируем сегодняшние уроки
+    lessons_by_time = {}
     for t, name, _ in schedule.get(today, []):
+        if t not in lessons_by_time:
+            lessons_by_time[t] = []
+        lessons_by_time[t].append(name)
+    
+    # Ищем следующий урок
+    for t, names in sorted(lessons_by_time.items()):
         if t > now:
-            send_message(chat_id, f"⏭ *Следующий урок:* {t} – {name}")
+            send_message(chat_id, f"⏭ *Следующий урок:* {t} – {', '.join(names)}")
             return
+    
+    # Если сегодня нет, смотрим завтра
     tomorrow = (today + 1) % 7
-    if schedule.get(tomorrow, []):
-        t, name, _ = schedule[tomorrow][0]
-        send_message(chat_id, f"📅 Завтра первый урок: {t} – {name}")
+    lessons_by_time = {}
+    for t, name, _ in schedule.get(tomorrow, []):
+        if t not in lessons_by_time:
+            lessons_by_time[t] = []
+        lessons_by_time[t].append(name)
+    
+    if lessons_by_time:
+        t = min(lessons_by_time.keys())
+        names = lessons_by_time[t]
+        send_message(chat_id, f"📅 Завтра первый урок: {t} – {', '.join(names)}")
     else:
         send_message(chat_id, "🎉 Уроков нет")
 
@@ -238,16 +344,31 @@ def show_links(chat_id, day):
         send_message(chat_id, "📭 Сегодня уроков нет")
         return
     
-    keyboard = {"inline_keyboard": []}
+    # Группируем для показа
+    lessons_by_time = {}
     for i, (t, name, link) in enumerate(lessons):
-        if link:
-            keyboard["inline_keyboard"].append([
-                {"text": f"{t} – {name}", "callback_data": f"link_{day}_{i}"}
-            ])
+        if link:  # Только уроки со ссылками
+            if t not in lessons_by_time:
+                lessons_by_time[t] = []
+            lessons_by_time[t].append((i, name, link))
     
-    if not keyboard["inline_keyboard"]:
+    if not lessons_by_time:
         send_message(chat_id, "🔗 Сегодня нет ссылок")
         return
+    
+    keyboard = {"inline_keyboard": []}
+    for t, items in sorted(lessons_by_time.items()):
+        for i, name, link in items:
+            # Ищем оригинальный индекс для callback
+            original_index = None
+            for idx, (ot, oname, olink) in enumerate(lessons):
+                if ot == t and oname == name and olink == link:
+                    original_index = idx
+                    break
+            if original_index is not None:
+                keyboard["inline_keyboard"].append([
+                    {"text": f"{t} – {name}", "callback_data": f"link_{day}_{original_index}"}
+                ])
     
     send_message(chat_id, "🔗 Выбери урок:", keyboard)
 
@@ -268,8 +389,6 @@ def run_flask():
 # ========== ЗАПУСК ==========
 if __name__ == "__main__":
     print("🚀 Бот запускается...")
-    print(f"🤖 Токен: {BOT_TOKEN[:10]}...")
-    print(f"👤 Разрешённые пользователи: {allowed_users}")
     
     # Запускаем Flask в отдельном потоке
     flask_thread = threading.Thread(target=run_flask, daemon=True)
