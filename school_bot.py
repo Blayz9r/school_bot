@@ -87,7 +87,7 @@ schedule = {
         ("15:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
     ],
     1: [  # Вторник
-        ("09:00", "Фізика", "https://us04web.zoom.us/j/78109712765?pwd=7D2EuBQMCJxzr2PpTUvF2EIHcthmbY.1", True),
+        ("09:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
         ("10:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("11:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1", False),
         ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", False),
@@ -101,7 +101,7 @@ schedule = {
         ("11:00", "Зарубіжна література", "https://us04web.zoom.us/j/9721960165?pwd=yYQs8qczfNK9soiSgiSHFXOLXEi2al.1", True),
         ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
         ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
-        ("14:00", "Фізика", "https://us04web.zoom.us/j/78109712765?pwd=7D2EuBQMCJxzr2PpTUvF2EIHcthmbY.1", False),
+        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
         ("15:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V", False),
     ],
     3: [  # Четверг
@@ -118,7 +118,7 @@ schedule = {
         ("10:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
         ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("13:00", "Фізика", "https://us04web.zoom.us/j/78109712765?pwd=7D2EuBQMCJxzr2PpTUvF2EIHcthmbY.1", False),
+        ("13:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
         ("14:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V", False),
         ("15:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
     ],
