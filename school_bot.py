@@ -76,7 +76,7 @@ user_settings = load_user_settings()
 # ========== РАСПИСАНИЕ ==========
 schedule = {
     0: [  # Понедельник
-        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1", False),
+        ("09:00", "Хімія", "https://meet.google.com/vhj-ouwf-mst", False),
         ("09:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096", False),
         ("10:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
         ("11:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
@@ -114,7 +114,7 @@ schedule = {
         ("15:00", "Захист України", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=77977167568", False),
     ],
     4: [  # Пятница
-        ("09:00", "Хімія", "https://us04web.zoom.us/j/7430647043?pwd=CLpdFoqSVh0X1s79xVF1m8w4J4MjYo.1", False),
+        ("09:00", "Хімія", "https://meet.google.com/vhj-ouwf-mst", False),
         ("10:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
         ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
