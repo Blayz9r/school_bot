@@ -82,7 +82,7 @@ schedule = {
         ("12:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
         ("13:00", "Інформатика", "", True),
         ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
-        ("14:00", "Фізкультура", "", True),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
         ("15:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", True),
     ],
     1: [  # Вівторок
@@ -92,7 +92,7 @@ schedule = {
         ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", False),
         ("12:00", "Англійська мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
         ("13:00", "Історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("14:00", "Фізкультура", "", True),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
         ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
     2: [  # Середа
@@ -110,7 +110,7 @@ schedule = {
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("12:00", "Захист України", "", True),
         ("13:00", "Географія", "", True),
-        ("14:00", "Фізкультура", "", True),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
         ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
     4: [  # П'ятниця
