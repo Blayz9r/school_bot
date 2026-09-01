@@ -75,58 +75,61 @@ user_settings = load_user_settings()
 
 # ========== РАСПИСАНИЕ ==========
 schedule = {
-    0: [  # Понедельник
-        ("09:00", "Хімія", "https://meet.google.com/vhj-ouwf-mst", False),
-        ("09:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096", False),
-        ("10:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("11:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
-        ("12:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-        ("13:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("14:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1", False),
-        ("14:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
-        ("15:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-    ],
-    1: [  # Вторник
-        ("09:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
-        ("10:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-        ("11:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1", False),
-        ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", False),
-        ("13:00", "Англійська", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
-        ("14:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("15:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-    ],
-    2: [  # Среда
-        ("09:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1", False),
-        ("10:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096", False),
-        ("11:00", "Зарубіжна література", "https://us04web.zoom.us/j/9721960165?pwd=yYQs8qczfNK9soiSgiSHFXOLXEi2al.1", True),
-        ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
-        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
-        ("15:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V", False),
-    ],
-    3: [  # Четверг
-        ("09:00", "Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", False),
-        ("10:00", "Громадянська освіта", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", False),
+    0: [  # Понеділок
+        ("09:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
+        ("10:00", "Захист України", "", True),
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-        ("12:00", "Біологія", "https://us05web.zoom.us/j/81300275025?pwd=xNzRsLtAf4TYeszH5yWAHMbutUCGbz.1", False),
-        ("13:00", "Геометрія", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("14:00", "Захист України", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=77977167568", False),
-        ("15:00", "Захист України", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=77977167568", False),
+        ("12:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
+        ("13:00", "Інформатика", "", True),
+        ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
+        ("14:00", "Фізкультура", "", True),
+        ("15:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", True),
     ],
-    4: [  # Пятница
-        ("09:00", "Хімія", "https://meet.google.com/vhj-ouwf-mst", False),
-        ("10:00", "Українська література", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
+    1: [  # Вівторок
+        ("09:00", "Хімія", "", True),
+        ("10:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("12:00", "Алгебра", "https://us04web.zoom.us/j/72853881538?pwd=5ap1lUemTYVzIS69BmnqXkqUGx4bkV.1", True),
-        ("13:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
-        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/9199278785?pwd=V", False),
-        ("15:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
+        ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", False),
+        ("12:00", "Англійська мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
+        ("13:00", "Історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
+        ("14:00", "Фізкультура", "", True),
+        ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
-    5: [],  # Суббота
-    6: [],  # Воскресенье
+    2: [  # Середа
+        ("09:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("10:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("12:00", "Зарубіжна література", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
+        ("13:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
+        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
+        ("15:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", True),
+    ],
+    3: [  # Четвер
+        ("09:00", "Інформатика", "", True),
+        ("10:00", "Хімія", "", True),
+        ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
+        ("12:00", "Захист України", "", True),
+        ("13:00", "Географія", "", True),
+        ("14:00", "Фізкультура", "", True),
+        ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
+    ],
+    4: [  # П'ятниця
+        ("09:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("10:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("11:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
+        ("12:00", "Іноземна мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
+        ("13:00", "Астрономія", "https://us04web.zoom.us/j/5272095133?pwd=YdXbLgRrckaMBrFbsUcbD53KC18axg.1", True),
+        ("14:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", True),
+        ("15:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
+        ("16:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
+    ],
+    5: [],  # Субота
+    6: [],  # Неділя
 }
 
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
+
+
 
 # ========== ФУНКЦИИ ОТПРАВКИ ==========
 def send_message(chat_id, text, keyboard=None):
