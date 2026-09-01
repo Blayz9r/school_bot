@@ -77,22 +77,22 @@ user_settings = load_user_settings()
 schedule = {
     0: [  # Понеділок
         ("09:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("10:00", "Захист України", "", True),
+        ("10:00", "Захист України", "", False),
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("12:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
-        ("13:00", "Інформатика", "", True),
+        ("13:00", "Інформатика", "", False),
         ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
-        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
-        ("15:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", True),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
+        ("15:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", False),
     ],
     1: [  # Вівторок
-        ("09:00", "Хімія", "", True),
+        ("09:00", "Хімія", "", False),
         ("10:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", False),
+        ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),  # важлива
         ("12:00", "Англійська мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
-        ("13:00", "Історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
+        ("13:00", "Історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),  # також важлива
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
         ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
     2: [  # Середа
@@ -101,34 +101,33 @@ schedule = {
         ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("12:00", "Зарубіжна література", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
         ("13:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
-        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
-        ("15:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", True),
+        ("14:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
+        ("15:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),  # виправлено на False
     ],
     3: [  # Четвер
-        ("09:00", "Інформатика", "", True),
-        ("10:00", "Хімія", "", True),
+        ("09:00", "Інформатика", "", False),
+        ("10:00", "Хімія", "", False),
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-        ("12:00", "Захист України", "", True),
-        ("13:00", "Географія", "", True),
-        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", True),
+        ("12:00", "Захист України", "", False),
+        ("13:00", "Географія", "", False),
+        ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
         ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
     4: [  # П'ятниця
         ("09:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("10:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("11:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
-        ("12:00", "Іноземна мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),
-        ("13:00", "Астрономія", "https://us04web.zoom.us/j/5272095133?pwd=YdXbLgRrckaMBrFbsUcbD53KC18axg.1", True),
-        ("14:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", True),
-        ("15:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
-        ("16:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", True),
+        ("12:00", "Іноземна мова", "https://us05web.zoom.us/j/5515598862?pwd=YUZHZk5TVzdjbTVYcFdVanNBZENYdz09", True),  # важлива
+        ("13:00", "Астрономія", "https://us04web.zoom.us/j/5272095133?pwd=YdXbLgRrckaMBrFbsUcbD53KC18axg.1", False),
+        ("14:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", False),
+        ("15:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
+        ("16:00", "Фізика", "https://us04web.zoom.us/j/77206078472?pwd=a8HpuUDfL7OOujuoMcmCzj5U0VZoJo.1", False),
     ],
     5: [],  # Субота
     6: [],  # Неділя
 }
 
 days_ua = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"]
-
 
 
 # ========== ФУНКЦИИ ОТПРАВКИ ==========
