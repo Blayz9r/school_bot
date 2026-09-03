@@ -77,16 +77,16 @@ user_settings = load_user_settings()
 schedule = {
     0: [  # Понеділок
         ("09:00", "Всесвітня історія", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
-        ("10:00", "Захист України", "", False),
+        ("10:00", "Захист України", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
         ("12:00", "Українська література", "https://us04web.zoom.us/j/9197311143?pwd=OmuCfNbUdVvTFbdbvJzUP14MkgobXq.1", True),
-        ("13:00", "Інформатика", "", False),
+        ("13:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1", False),
         ("13:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),
         ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
         ("15:00", "Біологія", "https://us05web.zoom.us/j/85704429212?pwd=sjnzYPCHej9j4jrbZyh1nRB2Hcf7c1.1", False),
     ],
     1: [  # Вівторок
-        ("09:00", "Хімія", "", False),
+        ("09:00", "Хімія", "http://meet.google.com/vhj-ouwf-mst", False),
         ("10:00", "Геометрія", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),
         ("11:00", "Історія України", "https://us05web.zoom.us/j/4813057325?pwd=ZWlaR0VtVmZTVCtlZ3pWbldYMmlTZz09", True),
         ("11:00", "Алгебра", "https://us05web.zoom.us/j/2197293258?pwd=6bVpZkiKVEVuQOUw19oaHWK8vU9PcO.1", True),  # важлива
@@ -105,11 +105,11 @@ schedule = {
         ("15:00", "Мистецтво", "https://us05web.zoom.us/j/3669615047?pwd=bWFXY3lHcHZTYzBlS2Q2MitjaTY0Zz09", False),  # виправлено на False
     ],
     3: [  # Четвер
-        ("09:00", "Інформатика", "", False),
-        ("10:00", "Хімія", "", False),
+        ("09:00", "Інформатика", "https://us05web.zoom.us/j/3778676851?pwd=llSnb5K3NkdhTaVbaWaiWOnhzQaNbT.1", False),
+        ("10:00", "Хімія", "http://meet.google.com/vhj-ouwf-mst", False),
         ("11:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
-        ("12:00", "Захист України", "", False),
-        ("13:00", "Географія", "", False),
+        ("12:00", "Захист України", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
+        ("13:00", "Географія", "https://us05web.zoom.us/j/7372874110?pwd=MUJaQUJsOUNHYUowUkswcEoxV09IUT09&omn=85468090096", False),
         ("14:00", "Фізкультура", "https://us04web.zoom.us/j/6440630408?pwd=B53r0MO81MJEqEdA6a2TAwydahNwNA.1&omn=76408241019", False),
         ("15:00", "Українська мова", "https://us04web.zoom.us/j/79053991159?pwd=THuQCb9YeGtubog7sFkXjP2bQJRvGQ.1", True),
     ],
